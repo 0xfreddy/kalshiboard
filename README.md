@@ -4,7 +4,7 @@
 
 KalshiBoard turns the original FlipOff split-flap display into a live market board. It fetches open Kalshi markets, ranks them by volume, and rotates through the top markets with YES/NO prices, a probability bar, and volume stats.
 
-![KalshiBoard screenshot](screenshot.png)
+![KalshiBoard preview](macos-screensaver/Packaging/Assets/thumbnail.png)
 
 ## Features
 
@@ -74,7 +74,6 @@ The macOS screen saver uses `macos-screensaver/Sources/KalshiBoardSaverView.swif
 .
   index.html              Single-page app shell
   server.mjs              Static server and Kalshi API proxy
-  screenshot.png          Current app screenshot
   scripts/
     build-screensaver.sh  Build a .saver bundle and DMG
   macos-screensaver/
