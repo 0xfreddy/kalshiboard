@@ -1,7 +1,7 @@
-import { Board } from './Board.js?v=21';
-import { SoundEngine } from './SoundEngine.js?v=21';
-import { KeyboardController } from './KeyboardController.js?v=21';
-import { runKalshiRotation } from './KalshiFeed.js?v=21';
+import { Board } from './Board.js?v=26';
+import { SoundEngine } from './SoundEngine.js?v=26';
+import { KeyboardController } from './KeyboardController.js?v=26';
+import { runKalshiRotation } from './KalshiFeed.js?v=26';
 
 const params = new URLSearchParams(window.location.search);
 const IS_SCREENSAVER = params.get('screensaver') === '1';
@@ -20,6 +20,11 @@ function applyTheme(theme) {
   const normalizedTheme = theme === 'light' ? 'light' : 'dark';
   document.documentElement.dataset.theme = normalizedTheme;
   document.documentElement.style.colorScheme = normalizedTheme;
+}
+
+function filterParam(name) {
+  const value = (params.get(name) || '').trim();
+  return value === 'All Subcategories' || value === 'All Categories' ? '' : value;
 }
 
 applyTheme(selectedTheme);
@@ -94,6 +99,10 @@ document.addEventListener('DOMContentLoaded', () => {
     cols: params.get('cols'),
     rows: params.get('rows')
   });
+  const marketFilters = {
+    category: filterParam('category'),
+    competition: filterParam('competition')
+  };
   new KeyboardController(soundEngine);
 
   // Initialize audio on first user interaction (browser autoplay policy)
@@ -109,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('click', initAudio);
   document.addEventListener('keydown', initAudio);
 
-  runKalshiRotation(board).catch(error => {
+  runKalshiRotation(board, marketFilters).catch(error => {
     console.error(error);
     board.displayMessage(UNAVAILABLE_MESSAGE);
   });

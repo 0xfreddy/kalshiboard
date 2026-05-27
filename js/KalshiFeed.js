@@ -1,12 +1,23 @@
-import { GRID_COLS, GRID_ROWS } from './constants.js?v=21';
+import { GRID_COLS, GRID_ROWS } from './constants.js?v=26';
 
 const API_BASE = '/api/kalshi';
 const MARKET_LIMIT = 500;
 const MAX_MARKET_PAGES = 1;
 const ROTATION_LIMIT = 12;
+const EVENT_SUMMARY_BATCH_SIZE = 12;
 const HOLD_MS = 3000;
 const REFRESH_AFTER_MS = 5 * 60 * 1000;
+const EMPTY_FILTER_RETRY_MS = 60 * 1000;
 const ACTIVE_MARKET_STATUSES = new Set(['active', 'open']);
+const NO_FILTER_MARKETS_MESSAGE = [
+  '',
+  '',
+  '',
+  'NO MARKETS',
+  '',
+  'FOR FILTER',
+  ''
+];
 
 function wait(ms) {
   return new Promise(resolve => {
@@ -39,14 +50,7 @@ function sanitizeText(value) {
 }
 
 function marketTitle(market) {
-  const title = sanitizeText(market.title);
-  const subtitle = sanitizeText(market.yes_sub_title || market.subtitle);
-
-  if (title) {
-    return title;
-  }
-
-  return subtitle;
+  return sanitizeText(market.display_title);
 }
 
 function wrapTitle(text, cols, maxLines = 2) {
@@ -164,6 +168,135 @@ export function isDisplayableBinaryMarket(market) {
   return isActiveBinaryMarket(market) && hasVolume(market) && Boolean(sanitizeText(market.title));
 }
 
+function hasEventTitle(market) {
+  return Boolean(sanitizeText(market.display_title));
+}
+
+function normalizeFilterValue(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+export function marketMatchesFilters(market, filters = {}) {
+  const category = normalizeFilterValue(filters.category);
+  const competition = normalizeFilterValue(filters.competition);
+  const tags = Array.isArray(market.series_tags) ? market.series_tags.map(normalizeFilterValue) : [];
+
+  if (category && normalizeFilterValue(market.category) !== category) {
+    return false;
+  }
+
+  if (
+    competition
+    && normalizeFilterValue(market.competition) !== competition
+    && !tags.includes(competition)
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function displayTitleFromEvent(event) {
+  const title = String(event?.title || '').trim();
+  const scope = String(event?.product_metadata?.competition_scope || '').trim();
+
+  if (title && scope && title.endsWith(`: ${scope}`)) {
+    return title.slice(0, -scope.length - 2).trim();
+  }
+
+  return title;
+}
+
+async function fetchEventSummary(eventTicker) {
+  const response = await fetch(`${API_BASE}/events/${encodeURIComponent(eventTicker)}`);
+
+  if (!response.ok) {
+    throw new Error(`Kalshi event request failed: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return {
+    category: data.event?.category || '',
+    competition: data.event?.product_metadata?.competition || '',
+    display_title: displayTitleFromEvent(data.event),
+    event_title: data.event?.title || '',
+    market_category: data.event?.product_metadata?.competition_scope || '',
+    series_ticker: data.event?.series_ticker || ''
+  };
+}
+
+async function fetchSeriesSummary(seriesTicker) {
+  const response = await fetch(`${API_BASE}/series/${encodeURIComponent(seriesTicker)}`);
+
+  if (!response.ok) {
+    throw new Error(`Kalshi series request failed: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return {
+    series_tags: Array.isArray(data.series?.tags) ? data.series.tags : []
+  };
+}
+
+async function addEventSummaries(markets, filters = {}) {
+  const eventSummaryCache = new Map();
+  const seriesSummaryCache = new Map();
+  const needsSeriesTags = Boolean(normalizeFilterValue(filters.competition));
+
+  return Promise.all(markets.map(async market => {
+    if (!market.event_ticker) {
+      return market;
+    }
+
+    if (!eventSummaryCache.has(market.event_ticker)) {
+      eventSummaryCache.set(market.event_ticker, fetchEventSummary(market.event_ticker).catch(() => null));
+    }
+
+    const summary = await eventSummaryCache.get(market.event_ticker);
+    let seriesSummary = null;
+
+    if (needsSeriesTags && summary?.series_ticker) {
+      if (!seriesSummaryCache.has(summary.series_ticker)) {
+        seriesSummaryCache.set(summary.series_ticker, fetchSeriesSummary(summary.series_ticker).catch(() => null));
+      }
+
+      seriesSummary = await seriesSummaryCache.get(summary.series_ticker);
+    }
+
+    return {
+      ...market,
+      category: summary?.category || '',
+      competition: summary?.competition || '',
+      display_title: summary?.display_title || '',
+      event_title: summary?.event_title || '',
+      market_category: summary?.market_category || '',
+      series_tags: seriesSummary?.series_tags || [],
+      series_ticker: summary?.series_ticker || market.series_ticker || ''
+    };
+  }));
+}
+
+async function collectDisplayMarkets(candidates, filters) {
+  const accepted = [];
+
+  for (let index = 0; index < candidates.length && accepted.length < ROTATION_LIMIT; index += EVENT_SUMMARY_BATCH_SIZE) {
+    const batch = candidates.slice(index, index + EVENT_SUMMARY_BATCH_SIZE);
+    const marketsWithEventTitles = await addEventSummaries(batch, filters);
+
+    for (const market of marketsWithEventTitles) {
+      if (hasEventTitle(market) && marketMatchesFilters(market, filters)) {
+        accepted.push(market);
+      }
+
+      if (accepted.length >= ROTATION_LIMIT) {
+        break;
+      }
+    }
+  }
+
+  return accepted;
+}
+
 export function buildMarketFrame(market, options = {}) {
   const cols = options.cols || GRID_COLS;
   const rows = options.rows || GRID_ROWS;
@@ -188,7 +321,7 @@ export function buildMarketFrame(market, options = {}) {
   return { cells: grid };
 }
 
-export async function fetchTopMarkets() {
+export async function fetchTopMarkets(filters = {}) {
   const markets = [];
   let cursor = '';
 
@@ -214,22 +347,25 @@ export async function fetchTopMarkets() {
     if (!cursor) break;
   }
 
-  return markets
+  const candidates = markets
     .filter(isDisplayableBinaryMarket)
-    .sort(compareMarketVolume)
-    .slice(0, ROTATION_LIMIT);
+    .sort(compareMarketVolume);
+
+  return collectDisplayMarkets(candidates, filters);
 }
 
-export async function runKalshiRotation(board) {
+export async function runKalshiRotation(board, filters = {}) {
   let markets = [];
   let lastRefresh = 0;
 
   while (true) {
     if (!markets.length || Date.now() - lastRefresh > REFRESH_AFTER_MS) {
       board.displayMessage(['', '', '', '', 'LOADING KALSHI', '', 'TOP VOLUME MARKETS']);
-      markets = await fetchTopMarkets();
+      markets = await fetchTopMarkets(filters);
       if (!markets.length) {
-        throw new Error('No displayable binary Kalshi markets available');
+        board.displayMessage(NO_FILTER_MARKETS_MESSAGE);
+        await wait(EMPTY_FILTER_RETRY_MS);
+        continue;
       }
       lastRefresh = Date.now();
     }

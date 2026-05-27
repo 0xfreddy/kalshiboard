@@ -30,7 +30,7 @@ function safeStaticPath(pathname) {
 async function proxyKalshi(request, response, url) {
   const kalshiPath = url.pathname.replace('/api/kalshi', '') || '/';
 
-  if (!/^\/(markets|events)(\/|$)/.test(kalshiPath)) {
+  if (!/^\/(markets|events|series)(\/|$)/.test(kalshiPath)) {
     send(response, 404, JSON.stringify({ error: 'Unsupported Kalshi endpoint' }), {
       'content-type': 'application/json; charset=utf-8'
     });

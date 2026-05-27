@@ -1,13 +1,19 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { buildMarketFrame, isDisplayableBinaryMarket } from '../js/KalshiFeed.js';
+import { buildMarketFrame, isDisplayableBinaryMarket, marketMatchesFilters } from '../js/KalshiFeed.js';
 
 const baseMarket = {
   event_ticker: 'KXTEST-26MAY',
   market_type: 'binary',
   status: 'active',
   ticker: 'KXTEST-26MAY',
+  display_title: 'Test market',
+  category: 'Sports',
+  competition: 'Pro Baseball',
+  series_tags: ['Baseball'],
+  event_title: 'Test market: Example category',
+  market_category: 'Example category',
   title: 'Will the test market resolve to yes?',
   yes_sub_title: 'YES',
   yes_bid_dollars: '0.4100',
@@ -42,9 +48,12 @@ test('rejects binary markets without volume', () => {
   assert.equal(isDisplayableBinaryMarket(noVolumeMarket), false);
 });
 
-test('renders the full market title instead of a short yes subtitle', () => {
+test('renders the display title instead of the event category or contract option title', () => {
   const frame = buildMarketFrame({
     ...baseMarket,
+    display_title: 'Congress budget vote',
+    event_title: 'Congress budget vote',
+    market_category: 'Passage',
     title: 'Will congress pass the budget?',
     yes_sub_title: 'PASS'
   }, { cols: 30, rows: 10 });
@@ -53,6 +62,16 @@ test('renders the full market title instead of a short yes subtitle', () => {
     .filter(Boolean)
     .join(' ');
 
-  assert.match(renderedText, /WILL CONGRESS PASS THE BUDGET/);
+  assert.match(renderedText, /CONGRESS BUDGET VOTE/);
+  assert.doesNotMatch(renderedText, /WILL CONGRESS PASS THE BUDGET/);
+  assert.doesNotMatch(renderedText, /PASSAGE/);
   assert.doesNotMatch(renderedText, /^PASS$/);
+});
+
+test('matches category and competition filters independently', () => {
+  assert.equal(marketMatchesFilters(baseMarket, { category: 'Sports' }), true);
+  assert.equal(marketMatchesFilters(baseMarket, { category: 'Sports', competition: 'Pro Baseball' }), true);
+  assert.equal(marketMatchesFilters(baseMarket, { category: 'Sports', competition: 'Baseball' }), true);
+  assert.equal(marketMatchesFilters(baseMarket, { category: 'Sports', competition: 'CS2' }), false);
+  assert.equal(marketMatchesFilters(baseMarket, { category: 'Politics' }), false);
 });

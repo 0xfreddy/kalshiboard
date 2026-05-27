@@ -1,7 +1,7 @@
-import { Tile } from './Tile.js?v=21';
+import { Tile } from './Tile.js?v=26';
 import {
   GRID_COLS, GRID_ROWS, MAX_GRID_COLS, MAX_GRID_ROWS, MIN_GRID_COLS, MIN_GRID_ROWS, STAGGER_DELAY, transitionDuration
-} from './constants.js?v=21';
+} from './constants.js?v=26';
 
 function scheduleTimeout(callback, delay) {
   return window.__kalshiBoardScheduler?.setTimeout(callback, delay) ?? setTimeout(callback, delay);

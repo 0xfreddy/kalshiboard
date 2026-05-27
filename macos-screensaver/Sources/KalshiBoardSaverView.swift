@@ -105,13 +105,20 @@ public final class KalshiBoardSaverView: ScreenSaverView {
     let config = KalshiBoardPreferences.currentConfig()
     applyTheme(config.theme)
     var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-    components?.queryItems = [
+    var queryItems = [
       URLQueryItem(name: "screensaver", value: "1"),
       URLQueryItem(name: "cols", value: "\(config.cols)"),
       URLQueryItem(name: "rows", value: "\(config.rows)"),
       URLQueryItem(name: "theme", value: config.theme),
       URLQueryItem(name: "reload", value: "\(Int(Date().timeIntervalSince1970))")
     ]
+    if !config.category.isEmpty {
+      queryItems.append(URLQueryItem(name: "category", value: config.category))
+    }
+    if !config.competition.isEmpty {
+      queryItems.append(URLQueryItem(name: "competition", value: config.competition))
+    }
+    components?.queryItems = queryItems
 
     webView?.load(URLRequest(url: components?.url ?? url, cachePolicy: .reloadIgnoringLocalCacheData))
   }
@@ -131,33 +138,245 @@ private struct KalshiBoardGridPreset {
   let rows: Int
 }
 
+private struct KalshiBoardCategoryOption {
+  let id: String
+  let title: String
+  let competitions: [String]
+}
+
 private enum KalshiBoardPreferences {
   static let moduleName = "com.freddy.kalshiboard.screensaver"
   static let sizeKey = "gridSize"
   static let themeKey = "theme"
+  static let categoryKey = "category"
+  static let competitionKey = "competition"
   static let defaultSize = "dense"
   static let defaultTheme = "dark"
+  static let defaultCategory = ""
+  static let defaultCompetition = ""
   static let presets = [
     KalshiBoardGridPreset(id: "dense", title: "Dense (30 x 10)", cols: 30, rows: 10),
     KalshiBoardGridPreset(id: "balanced", title: "Balanced (24 x 8)", cols: 24, rows: 8),
     KalshiBoardGridPreset(id: "large", title: "Large Text (18 x 6)", cols: 18, rows: 6)
+  ]
+  static let categoryOptions = [
+    KalshiBoardCategoryOption(
+      id: "",
+      title: "All Categories",
+      competitions: []
+    ),
+    KalshiBoardCategoryOption(
+      id: "Climate and Weather",
+      title: "Climate and Weather",
+      competitions: [
+        "Daily temperature",
+        "Hourly temperature",
+        "Snow and rain",
+        "Natural disasters",
+        "Climate change",
+        "Hurricanes"
+      ]
+    ),
+    KalshiBoardCategoryOption(
+      id: "Commodities",
+      title: "Commodities",
+      competitions: [
+        "Oil & Gas",
+        "Metals"
+      ]
+    ),
+    KalshiBoardCategoryOption(
+      id: "Companies",
+      title: "Companies",
+      competitions: []
+    ),
+    KalshiBoardCategoryOption(
+      id: "Crypto",
+      title: "Crypto",
+      competitions: [
+        "BTC",
+        "ETH",
+        "SOL",
+        "DOGE",
+        "BNB",
+        "XRP",
+        "HYPE",
+        "15 min",
+        "Hourly",
+        "Pre-Market"
+      ]
+    ),
+    KalshiBoardCategoryOption(
+      id: "Economics",
+      title: "Economics",
+      competitions: [
+        "Growth",
+        "Jobs & Economy",
+        "Inflation",
+        "Oil and energy",
+        "GDP",
+        "Fed",
+        "Global Central Banks",
+        "Housing",
+        "Econ Daily"
+      ]
+    ),
+    KalshiBoardCategoryOption(
+      id: "Elections",
+      title: "Elections",
+      competitions: [
+        "US Elections",
+        "Primaries",
+        "House",
+        "International elections",
+        "Senate",
+        "Governor",
+        "2028",
+        "Brazil",
+        "Peru"
+      ]
+    ),
+    KalshiBoardCategoryOption(
+      id: "Entertainment",
+      title: "Entertainment",
+      competitions: [
+        "Music",
+        "Television",
+        "People",
+        "Music charts",
+        "Awards",
+        "Movies",
+        "Oscars",
+        "Emmys",
+        "Live Music",
+        "Reality TV",
+        "Collectibles",
+        "Video games",
+        "Bezel",
+        "TV Charts",
+        "Grammys",
+        "Movie Charts",
+        "Music Streams",
+        "Art",
+        "New Music",
+        "Head to Head",
+        "Pokemon",
+        "Rotten Tomatoes",
+        "Tonys"
+      ]
+    ),
+    KalshiBoardCategoryOption(
+      id: "Financials",
+      title: "Financials",
+      competitions: [
+        "Companies",
+        "KPIs",
+        "Product launches",
+        "IPOs",
+        "Markets",
+        "Indices",
+        "M&A",
+        "CEOs",
+        "Foreign Exchange",
+        "Interest Rates",
+        "Match Ups"
+      ]
+    ),
+    KalshiBoardCategoryOption(
+      id: "Mentions",
+      title: "Mentions",
+      competitions: [
+        "Politicians",
+        "Earnings",
+        "Sports"
+      ]
+    ),
+    KalshiBoardCategoryOption(
+      id: "Politics",
+      title: "Politics",
+      competitions: [
+        "Trump",
+        "Congress",
+        "International",
+        "SCOTUS & courts",
+        "Local",
+        "Recurring",
+        "Iran"
+      ]
+    ),
+    KalshiBoardCategoryOption(
+      id: "Science and Technology",
+      title: "Science and Technology",
+      competitions: [
+        "AI",
+        "Energy",
+        "Big Tech & Business",
+        "Space",
+        "Public Health",
+        "Medicine",
+        "Physics & Math",
+        "Education"
+      ]
+    ),
+    KalshiBoardCategoryOption(
+      id: "Social",
+      title: "Social",
+      competitions: []
+    ),
+    KalshiBoardCategoryOption(
+      id: "Sports",
+      title: "Sports",
+      competitions: [
+        "Pro Baseball",
+        "Pro Basketball (M)",
+        "College Basketball",
+        "Pro Football",
+        "College Football",
+        "Hockey",
+        "Soccer",
+        "Tennis",
+        "Golf",
+        "CS2",
+        "Baseball",
+        "Basketball",
+        "Football",
+        "Motorsport",
+        "MMA",
+        "Esports",
+        "Cricket",
+        "Boxing",
+        "Chess",
+        "Other",
+        "Rugby",
+        "Lacrosse",
+        "Darts",
+        "Aussie Rules",
+        "Squash"
+      ]
+    )
   ]
 
   static func defaults() -> ScreenSaverDefaults {
     let defaults = ScreenSaverDefaults(forModuleWithName: moduleName)!
     defaults.register(defaults: [
       sizeKey: defaultSize,
-      themeKey: defaultTheme
+      themeKey: defaultTheme,
+      categoryKey: defaultCategory,
+      competitionKey: defaultCompetition
     ])
     return defaults
   }
 
-  static func currentConfig() -> (cols: Int, rows: Int, theme: String) {
+  static func currentConfig() -> (cols: Int, rows: Int, theme: String, category: String, competition: String) {
     let defaults = defaults()
     let sizeId = defaults.string(forKey: sizeKey) ?? defaultSize
     let preset = presets.first { $0.id == sizeId } ?? presets[0]
     let theme = defaults.string(forKey: themeKey) == "light" ? "light" : "dark"
-    return (preset.cols, preset.rows, theme)
+    let category = defaults.string(forKey: categoryKey) ?? defaultCategory
+    let categoryOption = categoryOptions.first { $0.id == category } ?? categoryOptions[0]
+    let savedCompetition = defaults.string(forKey: competitionKey) ?? defaultCompetition
+    let competition = categoryOption.competitions.contains(savedCompetition) ? savedCompetition : defaultCompetition
+    return (preset.cols, preset.rows, theme, categoryOption.id, competition)
   }
 }
 
@@ -165,12 +384,14 @@ private final class KalshiBoardSettingsController: NSObject {
   let window: NSPanel
   private let sizePopup = NSPopUpButton(frame: .zero, pullsDown: false)
   private let themePopup = NSPopUpButton(frame: .zero, pullsDown: false)
+  private let categoryPopup = NSPopUpButton(frame: .zero, pullsDown: false)
+  private let competitionPopup = NSPopUpButton(frame: .zero, pullsDown: false)
   private let onSave: () -> Void
 
   init(onSave: @escaping () -> Void) {
     self.onSave = onSave
     window = NSPanel(
-      contentRect: NSRect(x: 0, y: 0, width: 360, height: 188),
+      contentRect: NSRect(x: 0, y: 0, width: 420, height: 276),
       styleMask: [.titled],
       backing: .buffered,
       defer: false
@@ -183,14 +404,14 @@ private final class KalshiBoardSettingsController: NSObject {
     window.title = "KalshiBoard Options"
     window.isReleasedWhenClosed = false
 
-    let contentView = NSView(frame: NSRect(x: 0, y: 0, width: 360, height: 188))
+    let contentView = NSView(frame: NSRect(x: 0, y: 0, width: 420, height: 276))
     window.contentView = contentView
 
     let sizeLabel = NSTextField(labelWithString: "Board Size")
-    sizeLabel.frame = NSRect(x: 24, y: 126, width: 100, height: 22)
+    sizeLabel.frame = NSRect(x: 24, y: 214, width: 116, height: 22)
     contentView.addSubview(sizeLabel)
 
-    sizePopup.frame = NSRect(x: 132, y: 122, width: 196, height: 28)
+    sizePopup.frame = NSRect(x: 156, y: 210, width: 232, height: 28)
     for preset in KalshiBoardPreferences.presets {
       sizePopup.addItem(withTitle: preset.title)
       sizePopup.lastItem?.representedObject = preset.id
@@ -198,23 +419,43 @@ private final class KalshiBoardSettingsController: NSObject {
     contentView.addSubview(sizePopup)
 
     let themeLabel = NSTextField(labelWithString: "Background")
-    themeLabel.frame = NSRect(x: 24, y: 82, width: 100, height: 22)
+    themeLabel.frame = NSRect(x: 24, y: 170, width: 116, height: 22)
     contentView.addSubview(themeLabel)
 
-    themePopup.frame = NSRect(x: 132, y: 78, width: 196, height: 28)
+    themePopup.frame = NSRect(x: 156, y: 166, width: 232, height: 28)
     themePopup.addItem(withTitle: "Dark")
     themePopup.lastItem?.representedObject = "dark"
     themePopup.addItem(withTitle: "Light")
     themePopup.lastItem?.representedObject = "light"
     contentView.addSubview(themePopup)
 
+    let categoryLabel = NSTextField(labelWithString: "Category")
+    categoryLabel.frame = NSRect(x: 24, y: 126, width: 116, height: 22)
+    contentView.addSubview(categoryLabel)
+
+    categoryPopup.frame = NSRect(x: 156, y: 122, width: 232, height: 28)
+    for option in KalshiBoardPreferences.categoryOptions {
+      categoryPopup.addItem(withTitle: option.title)
+      categoryPopup.lastItem?.representedObject = option.id
+    }
+    categoryPopup.target = self
+    categoryPopup.action = #selector(categoryChanged)
+    contentView.addSubview(categoryPopup)
+
+    let competitionLabel = NSTextField(labelWithString: "Subcategory")
+    competitionLabel.frame = NSRect(x: 24, y: 82, width: 116, height: 22)
+    contentView.addSubview(competitionLabel)
+
+    competitionPopup.frame = NSRect(x: 156, y: 78, width: 232, height: 28)
+    contentView.addSubview(competitionPopup)
+
     let cancelButton = NSButton(title: "Cancel", target: self, action: #selector(cancel))
-    cancelButton.frame = NSRect(x: 164, y: 24, width: 78, height: 32)
+    cancelButton.frame = NSRect(x: 224, y: 24, width: 78, height: 32)
     contentView.addSubview(cancelButton)
 
     let saveButton = NSButton(title: "Save", target: self, action: #selector(save))
     saveButton.keyEquivalent = "\r"
-    saveButton.frame = NSRect(x: 250, y: 24, width: 78, height: 32)
+    saveButton.frame = NSRect(x: 310, y: 24, width: 78, height: 32)
     contentView.addSubview(saveButton)
 
     loadCurrentValues()
@@ -224,9 +465,33 @@ private final class KalshiBoardSettingsController: NSObject {
     let defaults = KalshiBoardPreferences.defaults()
     let sizeId = defaults.string(forKey: KalshiBoardPreferences.sizeKey) ?? KalshiBoardPreferences.defaultSize
     let theme = defaults.string(forKey: KalshiBoardPreferences.themeKey) ?? KalshiBoardPreferences.defaultTheme
+    let category = defaults.string(forKey: KalshiBoardPreferences.categoryKey) ?? KalshiBoardPreferences.defaultCategory
+    let competition = defaults.string(forKey: KalshiBoardPreferences.competitionKey) ?? KalshiBoardPreferences.defaultCompetition
 
     selectItem(in: sizePopup, representedObject: sizeId)
     selectItem(in: themePopup, representedObject: theme)
+    selectItem(in: categoryPopup, representedObject: category)
+    populateCompetitionPopup(selectedCompetition: competition)
+  }
+
+  @objc private func categoryChanged() {
+    populateCompetitionPopup(selectedCompetition: KalshiBoardPreferences.defaultCompetition)
+  }
+
+  private func populateCompetitionPopup(selectedCompetition: String) {
+    competitionPopup.removeAllItems()
+    competitionPopup.addItem(withTitle: "All Subcategories")
+    competitionPopup.lastItem?.representedObject = KalshiBoardPreferences.defaultCompetition
+
+    let category = categoryPopup.selectedItem?.representedObject as? String ?? KalshiBoardPreferences.defaultCategory
+    let option = KalshiBoardPreferences.categoryOptions.first { $0.id == category }
+
+    for competition in option?.competitions ?? [] {
+      competitionPopup.addItem(withTitle: competition)
+      competitionPopup.lastItem?.representedObject = competition
+    }
+
+    selectItem(in: competitionPopup, representedObject: selectedCompetition)
   }
 
   private func selectItem(in popup: NSPopUpButton, representedObject: String) {
@@ -241,8 +506,12 @@ private final class KalshiBoardSettingsController: NSObject {
     let defaults = KalshiBoardPreferences.defaults()
     let size = sizePopup.selectedItem?.representedObject as? String ?? KalshiBoardPreferences.defaultSize
     let theme = themePopup.selectedItem?.representedObject as? String ?? KalshiBoardPreferences.defaultTheme
+    let category = categoryPopup.selectedItem?.representedObject as? String ?? KalshiBoardPreferences.defaultCategory
+    let competition = competitionPopup.selectedItem?.representedObject as? String ?? KalshiBoardPreferences.defaultCompetition
     defaults.set(size, forKey: KalshiBoardPreferences.sizeKey)
     defaults.set(theme, forKey: KalshiBoardPreferences.themeKey)
+    defaults.set(category, forKey: KalshiBoardPreferences.categoryKey)
+    defaults.set(competition, forKey: KalshiBoardPreferences.competitionKey)
     defaults.synchronize()
     onSave()
     close()
@@ -411,7 +680,7 @@ private final class KalshiBoardLocalServer {
   private func proxyKalshi(path: String, query: String?, connection: NWConnection) {
     let kalshiPath = path.replacingOccurrences(of: "/api/kalshi", with: "")
 
-    guard kalshiPath.range(of: #"^/(markets|events)(/|$)"#, options: .regularExpression) != nil else {
+    guard kalshiPath.range(of: #"^/(markets|events|series)(/|$)"#, options: .regularExpression) != nil else {
       sendJSON(#"{"error":"Unsupported Kalshi endpoint"}"#, status: 404, connection: connection)
       return
     }
