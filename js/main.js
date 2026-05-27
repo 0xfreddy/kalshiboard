@@ -1,7 +1,7 @@
-import { Board } from './Board.js?v=6';
-import { SoundEngine } from './SoundEngine.js?v=6';
-import { KeyboardController } from './KeyboardController.js?v=6';
-import { GRID_COLS, GRID_ROWS } from './constants.js?v=6';
+import { Board } from './Board.js?v=7';
+import { SoundEngine } from './SoundEngine.js?v=7';
+import { KeyboardController } from './KeyboardController.js?v=7';
+import { GRID_COLS, GRID_ROWS } from './constants.js?v=7';
 
 const STORAGE_KEY = 'flipoff.message';
 const SAMPLE_MESSAGE = 'NOW BOARDING\nGATE 22\nFINAL CALL\nWELCOME HOME';

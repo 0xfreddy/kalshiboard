@@ -1,20 +1,17 @@
 /* Board Container */
 .board {
-  --tile-size: clamp(18px, min(calc((100vw - 128px) / 30), calc((100vh - 128px) / 10)), 78px);
+  --tile-size: clamp(18px, min(calc((100vw - 60px) / 30), calc((100vh - 52px) / 10)), 82px);
   --tile-gap: clamp(3px, 0.36vw, 8px);
 
   position: relative;
   background: #161616;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  padding: clamp(14px, 2.2vw, 34px);
-  width: calc(100vw - clamp(28px, 5vw, 76px));
-  height: calc(100vh - clamp(88px, 12vh, 132px));
-  height: calc(100dvh - clamp(88px, 12dvh, 132px));
-  max-width: 100%;
-  max-height: 100%;
+  border: 0;
+  border-radius: 0;
+  padding: clamp(10px, 1.6vw, 26px);
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
   box-shadow:
-    0 32px 120px rgba(0, 0, 0, 0.54),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
   overflow: hidden;
 }
@@ -36,11 +33,11 @@
 
 @media (max-width: 700px) {
   .board {
-    --tile-size: clamp(10px, min(calc((100vw - 36px) / 30), calc((100vh - 116px) / 10)), 26px);
+    --tile-size: clamp(10px, min(calc((100vw - 28px) / 30), calc((100vh - 28px) / 10)), 28px);
     --tile-gap: 2px;
-    width: calc(100vw - 20px);
-    height: calc(100vh - 92px);
-    height: calc(100dvh - 92px);
-    padding: 10px;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    padding: 8px;
   }
 }

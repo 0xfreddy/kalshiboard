@@ -1,6 +1,6 @@
 @media (min-width: 2000px) {
   .board {
-    --tile-size: clamp(42px, min(calc((100vw - 180px) / 30), calc((100vh - 160px) / 10)), 92px);
+    --tile-size: clamp(42px, min(calc((100vw - 70px) / 30), calc((100vh - 64px) / 10)), 96px);
   }
 }
 
@@ -10,11 +10,11 @@
 }
 
 :fullscreen .board-stage {
-  padding: clamp(10px, 2.4vw, 42px);
+  padding: 0;
 }
 
 :fullscreen .board {
-  --tile-size: clamp(16px, min(calc((100vw - 118px) / 30), calc((100vh - 112px) / 10)), 92px);
-  width: calc(100vw - clamp(20px, 4vw, 64px));
-  height: calc(100vh - clamp(20px, 4vw, 64px));
+  --tile-size: clamp(16px, min(calc((100vw - 58px) / 30), calc((100vh - 52px) / 10)), 96px);
+  width: 100vw;
+  height: 100vh;
 }
