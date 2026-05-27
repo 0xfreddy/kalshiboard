@@ -1,4 +1,4 @@
-import { GRID_COLS, GRID_ROWS } from './constants.js?v=30';
+import { GRID_COLS, GRID_ROWS } from './constants.js?v=31';
 
 const API_BASE = '/api/kalshi';
 const MARKET_LIMIT = 500;

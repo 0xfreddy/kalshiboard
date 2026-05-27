@@ -1,4 +1,4 @@
-import { CHARSET, SCRAMBLE_DURATION, FLIP_DURATION } from './constants.js?v=30';
+import { CHARSET, SCRAMBLE_DURATION, FLIP_DURATION } from './constants.js?v=31';
 
 const pendingCharUpdates = new Map();
 let pendingCharFrame = null;

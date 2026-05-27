@@ -1,4 +1,4 @@
-import { FLAP_AUDIO_BASE64 } from './flapAudio.js?v=30';
+import { FLAP_AUDIO_BASE64 } from './flapAudio.js?v=31';
 
 export class SoundEngine {
   constructor() {

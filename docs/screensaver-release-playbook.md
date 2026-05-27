@@ -15,6 +15,9 @@ The stable implementation has three important properties:
 - The `.saver` options sheet stores board size and dark/light background
   preferences in `ScreenSaverDefaults`, then passes them into the web app as
   startup query params.
+- The web release mirrors those same options in a web-only options panel. It
+  stores choices in `localStorage` and applies them through the same query-param
+  startup path used by the saver.
 - In screen saver mode, animation timing is driven by
   `ScreenSaverView.animateOneFrame()` instead of relying only on JavaScript
   timers.
@@ -62,7 +65,9 @@ screen saver releases. Benefits:
 
 Configuration that belongs in the screen saver should be native macOS
 configuration, exposed through the screen saver options sheet, not through
-buttons or overlays rendered on the board itself.
+buttons or overlays rendered on the board itself. The web release can expose the
+same controls as regular browser UI, but it should keep applying them through
+the same URL/query-param contract as the saver.
 
 ### 3. Waiting for Async Animation Hid Failures
 
@@ -299,6 +304,10 @@ Current supported settings:
 
 Pass these settings into the web app at load time. Do not make the board read
 preferences directly from WebKit storage; that creates another cache/state path.
+
+The web release mirrors these settings with a web-only panel. That panel can use
+`localStorage` for browser convenience, but it should still reload/apply through
+the same query params so one rendering path stays authoritative.
 
 ### Avoid UI That Needs Interaction
 
