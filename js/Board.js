@@ -1,8 +1,7 @@
-import { Tile } from './Tile.js';
+import { Tile } from './Tile.js?v=6';
 import {
-  GRID_COLS, GRID_ROWS, STAGGER_DELAY, SCRAMBLE_DURATION,
-  TOTAL_TRANSITION, ACCENT_COLORS
-} from './constants.js';
+  GRID_COLS, GRID_ROWS, STAGGER_DELAY, TOTAL_TRANSITION
+} from './constants.js?v=6';
 
 export class Board {
   constructor(containerEl, soundEngine) {
@@ -12,17 +11,13 @@ export class Board {
     this.isTransitioning = false;
     this.tiles = [];
     this.currentGrid = [];
-    this.accentIndex = 0;
+    this._queuedLines = null;
 
     // Build board DOM
     this.boardEl = document.createElement('div');
     this.boardEl.className = 'board';
     this.boardEl.style.setProperty('--grid-cols', this.cols);
     this.boardEl.style.setProperty('--grid-rows', this.rows);
-
-    // Left accent squares (2 small stacked blocks)
-    this.leftBar = this._createAccentBar('accent-bar-left');
-    this.boardEl.appendChild(this.leftBar);
 
     // Tile grid
     this.gridEl = document.createElement('div');
@@ -44,59 +39,14 @@ export class Board {
 
     this.boardEl.appendChild(this.gridEl);
 
-    // Right accent squares
-    this.rightBar = this._createAccentBar('accent-bar-right');
-    this.boardEl.appendChild(this.rightBar);
-
-    // Keyboard hint icon (bottom-left)
-    const hint = document.createElement('div');
-    hint.className = 'keyboard-hint';
-    hint.textContent = 'N';
-    hint.title = 'Keyboard shortcuts';
-    hint.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const overlay = this.boardEl.querySelector('.shortcuts-overlay');
-      if (overlay) overlay.classList.toggle('visible');
-    });
-    this.boardEl.appendChild(hint);
-
-    // Shortcuts overlay
-    const overlay = document.createElement('div');
-    overlay.className = 'shortcuts-overlay';
-    overlay.innerHTML = `
-      <div><span>Next message</span><kbd>Enter</kbd></div>
-      <div><span>Previous</span><kbd>\u2190</kbd></div>
-      <div><span>Fullscreen</span><kbd>F</kbd></div>
-      <div><span>Mute</span><kbd>M</kbd></div>
-    `;
-    this.boardEl.appendChild(overlay);
-
     containerEl.appendChild(this.boardEl);
-    this._updateAccentColors();
-  }
-
-  _createAccentBar(extraClass) {
-    const bar = document.createElement('div');
-    bar.className = `accent-bar ${extraClass}`;
-    // Just 2 small stacked squares like the original
-    for (let i = 0; i < 2; i++) {
-      const seg = document.createElement('div');
-      seg.className = 'accent-segment';
-      bar.appendChild(seg);
-    }
-    return bar;
-  }
-
-  _updateAccentColors() {
-    const color = ACCENT_COLORS[this.accentIndex % ACCENT_COLORS.length];
-    const segments = this.boardEl.querySelectorAll('.accent-segment');
-    segments.forEach(seg => {
-      seg.style.backgroundColor = color;
-    });
   }
 
   displayMessage(lines) {
-    if (this.isTransitioning) return;
+    if (this.isTransitioning) {
+      this._queuedLines = lines;
+      return;
+    }
     this.isTransitioning = true;
 
     // Format lines into grid
@@ -123,16 +73,17 @@ export class Board {
       this.soundEngine.playTransition();
     }
 
-    // Update accent bar colors
-    this.accentIndex++;
-    this._updateAccentColors();
-
     // Update grid state
     this.currentGrid = newGrid;
 
     // Clear transitioning flag after animation completes
     setTimeout(() => {
       this.isTransitioning = false;
+      if (this._queuedLines) {
+        const queuedLines = this._queuedLines;
+        this._queuedLines = null;
+        this.displayMessage(queuedLines);
+      }
     }, TOTAL_TRANSITION + 200);
   }
 

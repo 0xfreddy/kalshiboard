@@ -46,9 +46,6 @@ export class KeyboardController {
         if (document.fullscreenElement) {
           document.exitFullscreen();
         }
-        // Also hide shortcuts overlay
-        const overlay = document.querySelector('.shortcuts-overlay');
-        if (overlay) overlay.classList.remove('visible');
         break;
     }
   }

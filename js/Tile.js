@@ -1,4 +1,4 @@
-import { CHARSET, SCRAMBLE_COLORS, SCRAMBLE_DURATION, FLIP_DURATION } from './constants.js';
+import { CHARSET, SCRAMBLE_COLORS, SCRAMBLE_DURATION, FLIP_DURATION } from './constants.js?v=6';
 
 export class Tile {
   constructor(row, col) {
@@ -34,7 +34,7 @@ export class Tile {
     this.currentChar = char;
     this.frontSpan.textContent = char === ' ' ? '' : char;
     this.backSpan.textContent = '';
-    this.frontEl.style.backgroundColor = '';
+    this.frontEl.style.background = '';
   }
 
   scrambleTo(targetChar, delay) {
@@ -60,7 +60,7 @@ export class Tile {
 
         // Cycle background color
         const color = SCRAMBLE_COLORS[scrambleCount % SCRAMBLE_COLORS.length];
-        this.frontEl.style.backgroundColor = color;
+        this.frontEl.style.background = color;
 
         // Briefly change text color for contrast on light backgrounds
         if (color === '#FFFFFF' || color === '#FFCC00') {
@@ -76,7 +76,7 @@ export class Tile {
           this._scrambleTimer = null;
 
           // Reset colors
-          this.frontEl.style.backgroundColor = '';
+          this.frontEl.style.background = '';
           this.frontSpan.style.color = '';
 
           // Set the final character directly (skip 3D flip for reliability)

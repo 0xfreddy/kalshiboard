@@ -1,5 +1,5 @@
-export const GRID_COLS = 22;
-export const GRID_ROWS = 5;
+export const GRID_COLS = 30;
+export const GRID_ROWS = 10;
 
 export const SCRAMBLE_DURATION = 800;
 export const FLIP_DURATION = 300;

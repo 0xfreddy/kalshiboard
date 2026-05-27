@@ -4,47 +4,51 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#111111">
-  <title>FlipOff. — Free Split-Flap Display for Any TV</title>
-  <link rel="stylesheet" href="css/reset.css">
-  <link rel="stylesheet" href="css/layout.css">
-  <link rel="stylesheet" href="css/board.css">
-  <link rel="stylesheet" href="css/tile.css">
-  <link rel="stylesheet" href="css/responsive.css">
+  <title>FlipOff.</title>
+  <link rel="stylesheet" href="css/reset.css?v=6">
+  <link rel="stylesheet" href="css/layout.css?v=6">
+  <link rel="stylesheet" href="css/board.css?v=6">
+  <link rel="stylesheet" href="css/tile.css?v=6">
+  <link rel="stylesheet" href="css/responsive.css?v=6">
 </head>
 <body>
 
-  <div class="page-frame">
-    <!-- Header -->
-    <header class="header">
-      <div class="header-logo">FlipOff.</div>
-      <nav class="header-nav">
-        <a href="#features">Features</a>
-        <a href="#pricing">Pricing</a>
-        <button class="volume-icon" id="volume-btn" title="Toggle sound">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
-            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-          </svg>
-        </button>
-      </nav>
-    </header>
+  <div class="app-shell">
+    <main class="board-stage" id="board-container"></main>
 
-    <!-- Hero -->
-    <section class="hero">
-      <h1>Turn any TV into a retro split-flap display.</h1>
-      <p class="subtitle">The classic flip-board look, without the $3,500 hardware.</p>
-      <div class="hero-cta">
-        <input type="email" placeholder="you@example.com">
-        <button id="cta-btn">Get Early Access</button>
+    <button class="panel-toggle" id="panel-toggle" type="button" aria-controls="settings-panel" aria-expanded="true" title="Settings">
+      ⚙
+    </button>
+
+    <aside class="settings-panel" id="settings-panel" aria-label="Board settings">
+      <div class="settings-header">
+        <div>
+          <h1>FlipOff.</h1>
+          <p>Display text</p>
+        </div>
+        <button class="icon-button" id="close-panel-btn" type="button" title="Hide settings">×</button>
       </div>
-    </section>
 
-    <!-- Board -->
-    <section class="board-section" id="board-container">
-    </section>
+      <form class="settings-form" id="settings-form">
+        <label for="message-input">Board text</label>
+        <textarea id="message-input" rows="6" maxlength="180" spellcheck="false">FLIPOFF
+FULL SCREEN
+SPLIT FLAP
+DISPLAY</textarea>
+
+        <div class="settings-actions">
+          <button class="primary-button" type="submit">Apply</button>
+          <button class="secondary-button" id="sample-btn" type="button">Sample</button>
+        </div>
+      </form>
+
+      <div class="control-row">
+        <button class="icon-button" id="fullscreen-btn" type="button" title="Fullscreen">⛶</button>
+        <button class="icon-button" id="volume-btn" type="button" title="Toggle sound">♪</button>
+      </div>
+    </aside>
   </div>
 
-  <script type="module" src="js/main.js"></script>
+  <script type="module" src="js/main.js?v=6"></script>
 </body>
 </html>
