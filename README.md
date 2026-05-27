@@ -4,7 +4,7 @@
 
 KalshiBoardScreensaver turns open Kalshi binary markets into a fullscreen market board. It fetches live market data from Kalshi, ranks markets by 24-hour volume and total volume, and rotates through the strongest matches with the exact API-provided market/event title, expiration date, YES/NO prices, probability bar, and main category.
 
-![KalshiBoard screenshot](screenshot.png)
+![KalshiBoardScreensaver preview](macos-screensaver/Packaging/Assets/thumbnail.png)
 
 ## Features
 
@@ -94,7 +94,6 @@ The macOS screen saver uses `macos-screensaver/Sources/KalshiBoardSaverView.swif
 .
   index.html              Single-page app shell
   server.mjs              Static server and Kalshi API proxy
-  screenshot.png          Current app screenshot
   scripts/
     build-screensaver.sh  Build a .saver bundle and DMG
   macos-screensaver/
