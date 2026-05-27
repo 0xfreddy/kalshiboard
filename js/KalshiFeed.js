@@ -2,6 +2,7 @@ import { GRID_COLS, GRID_ROWS, TOTAL_TRANSITION } from './constants.js?v=7';
 
 const API_BASE = 'https://external-api.kalshi.com/trade-api/v2';
 const MARKET_LIMIT = 1000;
+const MAX_MARKET_PAGES = 5;
 const ROTATION_LIMIT = 12;
 const HOLD_MS = 3000;
 const REFRESH_AFTER_MS = 5 * 60 * 1000;
@@ -56,7 +57,7 @@ function writeCentered(grid, row, text, tone = '') {
 
 function writeMarketBar(grid, row, yesProbability) {
   const segments = 20;
-  const startCol = 1;
+  const startCol = Math.max(0, Math.floor((GRID_COLS - segments) / 2));
   const yesSegments = Math.max(0, Math.min(segments, Math.round(yesProbability * segments)));
 
   for (let index = 0; index < segments; index++) {
@@ -101,10 +102,10 @@ export function buildMarketFrame(market, metadata) {
   const volume = formatVolume(market.volume_fp);
   const volume24h = formatVolume(market.volume_24h_fp);
 
-  writeCentered(grid, 4, compactTitle(market));
-  writeCentered(grid, 5, `YES ${yesCents}C   NO ${noCents}C`);
-  writeMarketBar(grid, 6, yesProbability);
-  writeCentered(grid, 7, `VOL ${volume} / 24H ${volume24h}`);
+  writeCentered(grid, 3, compactTitle(market));
+  writeCentered(grid, 4, `YES ${yesCents}C   NO ${noCents}C`);
+  writeMarketBar(grid, 5, yesProbability);
+  writeCentered(grid, 6, `VOL ${volume} / 24H ${volume24h}`);
 
   return {
     cells: grid,
@@ -113,15 +114,32 @@ export function buildMarketFrame(market, metadata) {
 }
 
 export async function fetchTopMarkets() {
-  const url = `${API_BASE}/markets?limit=${MARKET_LIMIT}&status=open&mve_filter=exclude`;
-  const response = await fetch(url);
+  const markets = [];
+  let cursor = '';
 
-  if (!response.ok) {
-    throw new Error(`Kalshi markets request failed: ${response.status}`);
+  for (let page = 0; page < MAX_MARKET_PAGES; page++) {
+    const params = new URLSearchParams({
+      limit: String(MARKET_LIMIT),
+      status: 'open',
+      mve_filter: 'exclude'
+    });
+
+    if (cursor) params.set('cursor', cursor);
+
+    const response = await fetch(`${API_BASE}/markets?${params.toString()}`);
+
+    if (!response.ok) {
+      throw new Error(`Kalshi markets request failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    markets.push(...(data.markets || []));
+    cursor = data.cursor || '';
+
+    if (!cursor) break;
   }
 
-  const data = await response.json();
-  return (data.markets || [])
+  return markets
     .filter(market => toNumber(market.volume_fp) > 0 || toNumber(market.volume_24h_fp) > 0)
     .sort((a, b) => {
       const by24h = toNumber(b.volume_24h_fp) - toNumber(a.volume_24h_fp);
