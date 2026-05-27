@@ -103,15 +103,24 @@ public final class KalshiBoardSaverView: ScreenSaverView {
     }
 
     let config = KalshiBoardPreferences.currentConfig()
+    applyTheme(config.theme)
     var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
     components?.queryItems = [
       URLQueryItem(name: "screensaver", value: "1"),
       URLQueryItem(name: "cols", value: "\(config.cols)"),
       URLQueryItem(name: "rows", value: "\(config.rows)"),
-      URLQueryItem(name: "theme", value: config.theme)
+      URLQueryItem(name: "theme", value: config.theme),
+      URLQueryItem(name: "reload", value: "\(Int(Date().timeIntervalSince1970))")
     ]
 
     webView?.load(URLRequest(url: components?.url ?? url, cachePolicy: .reloadIgnoringLocalCacheData))
+  }
+
+  private func applyTheme(_ theme: String) {
+    let isLight = theme == "light"
+    let color = isLight ? NSColor(calibratedWhite: 0.94, alpha: 1) : NSColor.black
+    layer?.backgroundColor = color.cgColor
+    webView?.evaluateJavaScript("window.__kalshiBoardApplyTheme && window.__kalshiBoardApplyTheme('\(isLight ? "light" : "dark")');")
   }
 }
 

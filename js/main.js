@@ -1,10 +1,11 @@
-import { Board } from './Board.js?v=19';
-import { SoundEngine } from './SoundEngine.js?v=19';
-import { KeyboardController } from './KeyboardController.js?v=19';
-import { runKalshiRotation } from './KalshiFeed.js?v=19';
+import { Board } from './Board.js?v=20';
+import { SoundEngine } from './SoundEngine.js?v=20';
+import { KeyboardController } from './KeyboardController.js?v=20';
+import { runKalshiRotation } from './KalshiFeed.js?v=20';
 
 const params = new URLSearchParams(window.location.search);
 const IS_SCREENSAVER = params.get('screensaver') === '1';
+const selectedTheme = params.get('theme') === 'light' ? 'light' : 'dark';
 const UNAVAILABLE_MESSAGE = [
   '',
   '',
@@ -14,6 +15,15 @@ const UNAVAILABLE_MESSAGE = [
   '',
   'TRY AGAIN LATER'
 ];
+
+function applyTheme(theme) {
+  const normalizedTheme = theme === 'light' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = normalizedTheme;
+  document.documentElement.style.colorScheme = normalizedTheme;
+}
+
+applyTheme(selectedTheme);
+window.__kalshiBoardApplyTheme = applyTheme;
 
 if (IS_SCREENSAVER && !window.__kalshiBoardScheduler) {
   let currentTime = 0;
@@ -79,8 +89,7 @@ if (IS_SCREENSAVER && !window.__kalshiBoardScheduler) {
 document.addEventListener('DOMContentLoaded', () => {
   const boardContainer = document.getElementById('board-container');
   const soundEngine = new SoundEngine();
-  const theme = params.get('theme') === 'light' ? 'light' : 'dark';
-  document.documentElement.dataset.theme = theme;
+  applyTheme(selectedTheme);
   const board = new Board(boardContainer, soundEngine, {
     cols: params.get('cols'),
     rows: params.get('rows')
