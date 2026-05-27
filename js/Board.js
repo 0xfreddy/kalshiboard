@@ -1,7 +1,11 @@
-import { Tile } from './Tile.js?v=17';
+import { Tile } from './Tile.js?v=18';
 import {
   GRID_COLS, GRID_ROWS, STAGGER_DELAY, TOTAL_TRANSITION
-} from './constants.js?v=17';
+} from './constants.js?v=18';
+
+function scheduleTimeout(callback, delay) {
+  return window.__kalshiBoardScheduler?.setTimeout(callback, delay) ?? setTimeout(callback, delay);
+}
 
 export class Board {
   constructor(containerEl, soundEngine) {
@@ -101,7 +105,7 @@ export class Board {
     }
 
     // Clear transitioning flag after animation completes
-    setTimeout(() => {
+    scheduleTimeout(() => {
       this.isTransitioning = false;
       if (this._queuedLines) {
         const { cells: queuedCells } = this._queuedLines;

@@ -1,4 +1,4 @@
-import { GRID_COLS, GRID_ROWS, TOTAL_TRANSITION } from './constants.js?v=17';
+import { GRID_COLS, GRID_ROWS, TOTAL_TRANSITION } from './constants.js?v=18';
 
 const API_BASE = '/api/kalshi';
 const MARKET_LIMIT = 500;
@@ -8,7 +8,15 @@ const HOLD_MS = 3000;
 const REFRESH_AFTER_MS = 5 * 60 * 1000;
 
 function wait(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise(resolve => {
+    const scheduler = window.__kalshiBoardScheduler;
+    if (scheduler) {
+      scheduler.setTimeout(resolve, ms);
+      return;
+    }
+
+    setTimeout(resolve, ms);
+  });
 }
 
 function toNumber(value) {

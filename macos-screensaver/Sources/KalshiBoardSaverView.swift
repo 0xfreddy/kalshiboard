@@ -10,11 +10,13 @@ public final class KalshiBoardSaverView: ScreenSaverView {
 
   public override init?(frame: NSRect, isPreview: Bool) {
     super.init(frame: frame, isPreview: isPreview)
+    animationTimeInterval = 1.0 / 30.0
     setupWebView()
   }
 
   public required init?(coder: NSCoder) {
     super.init(coder: coder)
+    animationTimeInterval = 1.0 / 30.0
     setupWebView()
   }
 
@@ -26,6 +28,12 @@ public final class KalshiBoardSaverView: ScreenSaverView {
   public override func stopAnimation() {
     super.stopAnimation()
     webView?.stopLoading()
+  }
+
+  public override func animateOneFrame() {
+    super.animateOneFrame()
+    let timestamp = CACurrentMediaTime() * 1000
+    webView?.evaluateJavaScript("window.__kalshiBoardNativeFrame && window.__kalshiBoardNativeFrame(\(timestamp));")
   }
 
   public override func resizeSubviews(withOldSize oldSize: NSSize) {

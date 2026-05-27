@@ -1,4 +1,34 @@
-import { CHARSET, SCRAMBLE_COLORS, SCRAMBLE_DURATION, FLIP_DURATION } from './constants.js?v=17';
+import { CHARSET, SCRAMBLE_COLORS, SCRAMBLE_DURATION, FLIP_DURATION } from './constants.js?v=18';
+
+function scheduler() {
+  return window.__kalshiBoardScheduler || null;
+}
+
+function scheduleTimeout(callback, delay) {
+  return scheduler()?.setTimeout(callback, delay) ?? setTimeout(callback, delay);
+}
+
+function cancelTimeout(id) {
+  const activeScheduler = scheduler();
+  if (activeScheduler) {
+    activeScheduler.clearTimeout(id);
+  } else {
+    clearTimeout(id);
+  }
+}
+
+function scheduleInterval(callback, delay) {
+  return scheduler()?.setInterval(callback, delay) ?? setInterval(callback, delay);
+}
+
+function cancelInterval(id) {
+  const activeScheduler = scheduler();
+  if (activeScheduler) {
+    activeScheduler.clearInterval(id);
+  } else {
+    clearInterval(id);
+  }
+}
 
 export class Tile {
   constructor(row, col) {
@@ -58,7 +88,7 @@ export class Tile {
     this.isAnimating = true;
     const animationToken = ++this._animationToken;
 
-    this._delayTimer = setTimeout(() => {
+    this._delayTimer = scheduleTimeout(() => {
       if (animationToken !== this._animationToken) return;
       this._delayTimer = null;
       this.el.classList.add('scrambling');
@@ -66,7 +96,7 @@ export class Tile {
       const maxScrambles = 10 + Math.floor(Math.random() * 4);
       const scrambleInterval = 70;
 
-      this._scrambleTimer = setInterval(() => {
+      this._scrambleTimer = scheduleInterval(() => {
         if (animationToken !== this._animationToken) {
           this._clearTimers();
           return;
@@ -90,7 +120,7 @@ export class Tile {
         scrambleCount++;
 
         if (scrambleCount >= maxScrambles) {
-          clearInterval(this._scrambleTimer);
+          cancelInterval(this._scrambleTimer);
           this._scrambleTimer = null;
 
           // Reset colors
@@ -105,10 +135,10 @@ export class Tile {
           this.innerEl.style.transition = `transform ${FLIP_DURATION}ms ease-in-out`;
           this.innerEl.style.transform = 'perspective(400px) rotateX(-8deg)';
 
-          setTimeout(() => {
+          scheduleTimeout(() => {
             if (animationToken !== this._animationToken) return;
             this.innerEl.style.transform = '';
-            setTimeout(() => {
+            scheduleTimeout(() => {
               if (animationToken !== this._animationToken) return;
               this.innerEl.style.transition = '';
               this.setTone(tone);
@@ -136,12 +166,12 @@ export class Tile {
     this._animationToken++;
 
     if (this._delayTimer) {
-      clearTimeout(this._delayTimer);
+      cancelTimeout(this._delayTimer);
       this._delayTimer = null;
     }
 
     if (this._scrambleTimer) {
-      clearInterval(this._scrambleTimer);
+      cancelInterval(this._scrambleTimer);
       this._scrambleTimer = null;
     }
 

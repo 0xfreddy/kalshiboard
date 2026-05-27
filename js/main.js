@@ -1,8 +1,9 @@
-import { Board } from './Board.js?v=17';
-import { SoundEngine } from './SoundEngine.js?v=17';
-import { KeyboardController } from './KeyboardController.js?v=17';
-import { runKalshiRotation } from './KalshiFeed.js?v=17';
+import { Board } from './Board.js?v=18';
+import { SoundEngine } from './SoundEngine.js?v=18';
+import { KeyboardController } from './KeyboardController.js?v=18';
+import { runKalshiRotation } from './KalshiFeed.js?v=18';
 
+const IS_SCREENSAVER = new URLSearchParams(window.location.search).get('screensaver') === '1';
 const UNAVAILABLE_MESSAGE = [
   '',
   '',
@@ -12,6 +13,67 @@ const UNAVAILABLE_MESSAGE = [
   '',
   'TRY AGAIN LATER'
 ];
+
+if (IS_SCREENSAVER && !window.__kalshiBoardScheduler) {
+  let currentTime = 0;
+  let nextId = 1;
+  const timers = new Map();
+
+  const scheduler = {
+    setTimeout(callback, delay) {
+      const id = nextId++;
+      timers.set(id, {
+        callback,
+        delay: Math.max(0, delay),
+        due: currentTime + Math.max(0, delay),
+        repeat: false
+      });
+      return id;
+    },
+
+    clearTimeout(id) {
+      timers.delete(id);
+    },
+
+    setInterval(callback, delay) {
+      const interval = Math.max(1, delay);
+      const id = nextId++;
+      timers.set(id, {
+        callback,
+        delay: interval,
+        due: currentTime + interval,
+        repeat: true
+      });
+      return id;
+    },
+
+    clearInterval(id) {
+      timers.delete(id);
+    },
+
+    tick(timestamp) {
+      currentTime = Math.max(currentTime + 16.667, Number(timestamp) || 0);
+      const dueTimers = [...timers.entries()]
+        .filter(([, timer]) => timer.due <= currentTime)
+        .sort((a, b) => a[1].due - b[1].due);
+
+      for (const [id, timer] of dueTimers) {
+        if (!timers.has(id)) continue;
+
+        if (timer.repeat) {
+          timer.due = currentTime + timer.delay;
+        } else {
+          timers.delete(id);
+        }
+
+        timer.callback();
+      }
+    }
+  };
+
+  window.__kalshiBoardScheduler = scheduler;
+  window.__kalshiBoardNativeFrame = (timestamp) => scheduler.tick(timestamp);
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   const boardContainer = document.getElementById('board-container');
