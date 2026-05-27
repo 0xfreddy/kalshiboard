@@ -21,6 +21,7 @@ const baseMarket = {
   no_bid_dollars: '0.5700',
   no_ask_dollars: '0.5900',
   last_price_dollars: '0.4200',
+  expected_expiration_time: '2026-05-29T12:00:00Z',
   volume_fp: '100.00',
   volume_24h_fp: '50.00'
 };
@@ -66,6 +67,42 @@ test('renders the display title instead of the event category or contract option
   assert.doesNotMatch(renderedText, /WILL CONGRESS PASS THE BUDGET/);
   assert.doesNotMatch(renderedText, /PASSAGE/);
   assert.doesNotMatch(renderedText, /^PASS$/);
+});
+
+test('renders category metadata instead of volume stats', () => {
+  const frame = buildMarketFrame(baseMarket, { cols: 30, rows: 10 });
+  const renderedText = frame.cells
+    .map(row => row.map(cell => cell.char).join('').trim())
+    .filter(Boolean)
+    .join(' ');
+
+  assert.match(renderedText, /SPORTS/);
+  assert.doesNotMatch(renderedText, /PRO BASEBALL/);
+  assert.doesNotMatch(renderedText, /EXAMPLE/);
+  assert.doesNotMatch(renderedText, /VOL/);
+  assert.doesNotMatch(renderedText, /24H/);
+});
+
+test('renders the market expiration date below the title', () => {
+  const frame = buildMarketFrame(baseMarket, { cols: 30, rows: 10 });
+  const rows = frame.cells
+    .map(row => row.map(cell => cell.char).join('').trim())
+    .filter(Boolean);
+
+  assert.deepEqual(rows.slice(0, 2), ['TEST MARKET', '29/05']);
+});
+
+test('falls back to expiration time when expected expiration is missing', () => {
+  const frame = buildMarketFrame({
+    ...baseMarket,
+    expected_expiration_time: '',
+    expiration_time: '2026-06-03T00:00:00Z'
+  }, { cols: 30, rows: 10 });
+  const rows = frame.cells
+    .map(row => row.map(cell => cell.char).join('').trim())
+    .filter(Boolean);
+
+  assert.equal(rows[1], '03/06');
 });
 
 test('matches category and competition filters independently', () => {

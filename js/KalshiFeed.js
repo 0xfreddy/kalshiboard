@@ -1,4 +1,4 @@
-import { GRID_COLS, GRID_ROWS } from './constants.js?v=26';
+import { GRID_COLS, GRID_ROWS } from './constants.js?v=30';
 
 const API_BASE = '/api/kalshi';
 const MARKET_LIMIT = 500;
@@ -130,13 +130,6 @@ function midpointCents(bid, ask, fallback) {
   return toCents(fallback);
 }
 
-function formatVolume(value) {
-  const volume = toNumber(value);
-  if (volume >= 1000000) return `${(volume / 1000000).toFixed(1)}M`;
-  if (volume >= 1000) return `${(volume / 1000).toFixed(1)}K`;
-  return String(Math.round(volume));
-}
-
 function hasTradableYesNoPrice(market) {
   return [
     market.yes_bid_dollars,
@@ -194,6 +187,23 @@ export function marketMatchesFilters(market, filters = {}) {
   }
 
   return true;
+}
+
+function marketCategoryLabel(market) {
+  return sanitizeText(market.category);
+}
+
+function formatExpirationDate(market) {
+  const rawDate = market.expected_expiration_time || market.expiration_time || market.close_time;
+  const date = rawDate ? new Date(rawDate) : null;
+
+  if (!date || Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  return `${day}/${month}`;
 }
 
 function displayTitleFromEvent(event) {
@@ -304,19 +314,20 @@ export function buildMarketFrame(market, options = {}) {
   const yesCents = midpointCents(market.yes_bid_dollars, market.yes_ask_dollars, market.last_price_dollars);
   const noCents = Math.max(0, Math.min(100, 100 - yesCents));
   const yesProbability = yesCents / 100;
-  const volume = formatVolume(market.volume_fp);
-  const volume24h = formatVolume(market.volume_24h_fp);
+  const categoryLabel = marketCategoryLabel(market);
+  const expirationDate = formatExpirationDate(market);
 
   const layout = rows <= 6
-    ? { titleStart: 0, priceRow: 3, barRow: 4, volumeRow: 5 }
-    : { titleStart: 1, priceRow: Math.floor(rows * 0.45), barRow: Math.floor(rows * 0.55), volumeRow: rows - 2 };
+    ? { titleStart: 0, expirationRow: 2, priceRow: 3, barRow: 4, volumeRow: 5 }
+    : { titleStart: 1, expirationRow: 3, priceRow: Math.floor(rows * 0.45), barRow: Math.floor(rows * 0.55), volumeRow: rows - 2 };
 
   wrapTitle(marketTitle(market), cols).forEach((line, index) => {
     writeCentered(grid, layout.titleStart + index, line, cols);
   });
+  writeCentered(grid, layout.expirationRow, expirationDate, cols);
   writeCentered(grid, layout.priceRow, `YES ${yesCents}C   NO ${noCents}C`, cols);
   writeMarketBar(grid, layout.barRow, yesProbability, cols);
-  writeCentered(grid, layout.volumeRow, `VOL ${volume} 24H ${volume24h}`, cols);
+  writeCentered(grid, layout.volumeRow, categoryLabel, cols);
 
   return { cells: grid };
 }

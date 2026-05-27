@@ -149,6 +149,19 @@ html[data-theme="light"] .tile-back span::after {
     );
 }
 
+.tile.scrambling .tile-front {
+  background:
+    linear-gradient(
+      180deg,
+      #20e582 0%,
+      #0fbf68 48%,
+      #087645 49%,
+      #087645 51%,
+      #0da65b 52%,
+      #24ef8b 100%
+    );
+}
+
 .tile[data-tone="no"] .tile-front {
   background:
     linear-gradient(

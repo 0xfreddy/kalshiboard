@@ -13,7 +13,3 @@ export const transitionDuration = (cols = GRID_COLS, rows = GRID_ROWS) =>
 export const TOTAL_TRANSITION = transitionDuration();
 
 export const CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,-!?\'/: ';
-
-export const SCRAMBLE_COLORS = [
-  '#00D991'
-];

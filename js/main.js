@@ -1,7 +1,7 @@
-import { Board } from './Board.js?v=26';
-import { SoundEngine } from './SoundEngine.js?v=26';
-import { KeyboardController } from './KeyboardController.js?v=26';
-import { runKalshiRotation } from './KalshiFeed.js?v=26';
+import { Board } from './Board.js?v=30';
+import { SoundEngine } from './SoundEngine.js?v=30';
+import { KeyboardController } from './KeyboardController.js?v=30';
+import { runKalshiRotation } from './KalshiFeed.js?v=30';
 
 const params = new URLSearchParams(window.location.search);
 const IS_SCREENSAVER = params.get('screensaver') === '1';
