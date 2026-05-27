@@ -1,4 +1,4 @@
-import { CHARSET, SCRAMBLE_COLORS, SCRAMBLE_DURATION, FLIP_DURATION } from './constants.js?v=15';
+import { CHARSET, SCRAMBLE_COLORS, SCRAMBLE_DURATION, FLIP_DURATION } from './constants.js?v=16';
 
 export class Tile {
   constructor(row, col) {
