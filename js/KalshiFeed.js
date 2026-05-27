@@ -1,4 +1,4 @@
-import { GRID_COLS, GRID_ROWS } from './constants.js?v=20';
+import { GRID_COLS, GRID_ROWS } from './constants.js?v=21';
 
 const API_BASE = '/api/kalshi';
 const MARKET_LIMIT = 500;
@@ -6,6 +6,7 @@ const MAX_MARKET_PAGES = 1;
 const ROTATION_LIMIT = 12;
 const HOLD_MS = 3000;
 const REFRESH_AFTER_MS = 5 * 60 * 1000;
+const ACTIVE_MARKET_STATUSES = new Set(['active', 'open']);
 
 function wait(ms) {
   return new Promise(resolve => {
@@ -38,14 +39,14 @@ function sanitizeText(value) {
 }
 
 function marketTitle(market) {
-  const subtitle = sanitizeText(market.yes_sub_title || market.subtitle);
   const title = sanitizeText(market.title);
+  const subtitle = sanitizeText(market.yes_sub_title || market.subtitle);
 
-  if (subtitle && subtitle !== 'YES') {
-    return subtitle;
+  if (title) {
+    return title;
   }
 
-  return title;
+  return subtitle;
 }
 
 function wrapTitle(text, cols, maxLines = 2) {
@@ -132,6 +133,37 @@ function formatVolume(value) {
   return String(Math.round(volume));
 }
 
+function hasTradableYesNoPrice(market) {
+  return [
+    market.yes_bid_dollars,
+    market.yes_ask_dollars,
+    market.no_bid_dollars,
+    market.no_ask_dollars,
+    market.last_price_dollars
+  ].some(value => toNumber(value) > 0);
+}
+
+function isActiveBinaryMarket(market) {
+  const status = String(market.status || '').toLowerCase();
+  return market.market_type === 'binary'
+    && (!status || ACTIVE_MARKET_STATUSES.has(status))
+    && hasTradableYesNoPrice(market);
+}
+
+function compareMarketVolume(a, b) {
+  const by24h = toNumber(b.volume_24h_fp) - toNumber(a.volume_24h_fp);
+  if (by24h !== 0) return by24h;
+  return toNumber(b.volume_fp) - toNumber(a.volume_fp);
+}
+
+function hasVolume(market) {
+  return toNumber(market.volume_fp) > 0 || toNumber(market.volume_24h_fp) > 0;
+}
+
+export function isDisplayableBinaryMarket(market) {
+  return isActiveBinaryMarket(market) && hasVolume(market) && Boolean(sanitizeText(market.title));
+}
+
 export function buildMarketFrame(market, options = {}) {
   const cols = options.cols || GRID_COLS;
   const rows = options.rows || GRID_ROWS;
@@ -183,12 +215,8 @@ export async function fetchTopMarkets() {
   }
 
   return markets
-    .filter(market => toNumber(market.volume_fp) > 0 || toNumber(market.volume_24h_fp) > 0)
-    .sort((a, b) => {
-      const by24h = toNumber(b.volume_24h_fp) - toNumber(a.volume_24h_fp);
-      if (by24h !== 0) return by24h;
-      return toNumber(b.volume_fp) - toNumber(a.volume_fp);
-    })
+    .filter(isDisplayableBinaryMarket)
+    .sort(compareMarketVolume)
     .slice(0, ROTATION_LIMIT);
 }
 
@@ -200,6 +228,9 @@ export async function runKalshiRotation(board) {
     if (!markets.length || Date.now() - lastRefresh > REFRESH_AFTER_MS) {
       board.displayMessage(['', '', '', '', 'LOADING KALSHI', '', 'TOP VOLUME MARKETS']);
       markets = await fetchTopMarkets();
+      if (!markets.length) {
+        throw new Error('No displayable binary Kalshi markets available');
+      }
       lastRefresh = Date.now();
     }
 

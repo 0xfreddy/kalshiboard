@@ -1,4 +1,4 @@
-import { CHARSET, SCRAMBLE_COLORS, SCRAMBLE_DURATION, FLIP_DURATION } from './constants.js?v=20';
+import { CHARSET, SCRAMBLE_COLORS, SCRAMBLE_DURATION, FLIP_DURATION } from './constants.js?v=21';
 
 function scheduler() {
   return window.__kalshiBoardScheduler || null;
