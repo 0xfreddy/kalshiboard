@@ -85,5 +85,5 @@ createServer(async (request, response) => {
     });
   }
 }).listen(PORT, () => {
-  console.log(`FlipOff Kalshi board running at http://127.0.0.1:${PORT}/`);
+  console.log(`KalshiBoard running at http://127.0.0.1:${PORT}/`);
 });

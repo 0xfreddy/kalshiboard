@@ -1,11 +1,20 @@
-import { Board } from './Board.js?v=14';
-import { SoundEngine } from './SoundEngine.js?v=14';
-import { KeyboardController } from './KeyboardController.js?v=14';
-import { GRID_COLS, GRID_ROWS } from './constants.js?v=14';
-import { runKalshiRotation } from './KalshiFeed.js?v=14';
+import { Board } from './Board.js?v=15';
+import { SoundEngine } from './SoundEngine.js?v=15';
+import { KeyboardController } from './KeyboardController.js?v=15';
+import { GRID_COLS, GRID_ROWS } from './constants.js?v=15';
+import { runKalshiRotation } from './KalshiFeed.js?v=15';
 
-const STORAGE_KEY = 'flipoff.message';
-const SAMPLE_MESSAGE = 'NOW BOARDING\nGATE 22\nFINAL CALL\nWELCOME HOME';
+const STORAGE_KEY = 'kalshiboard.message';
+const SAMPLE_MESSAGE = 'TOP VOLUME\nKALSHI MARKETS\nLIVE ODDS\nAUTO ROTATION';
+const UNAVAILABLE_MESSAGE = [
+  '',
+  '',
+  '',
+  'KALSHI MARKETS',
+  'UNAVAILABLE',
+  '',
+  'TRY AGAIN LATER'
+];
 
 function normalizeBoardText(value) {
   const cleaned = value
@@ -67,11 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const volumeBtn = document.getElementById('volume-btn');
   const soundEngine = new SoundEngine();
   const board = new Board(boardContainer, soundEngine);
-  const boardControls = {
-    next: () => applyMessage(messageInput.value),
-    prev: () => applyMessage(messageInput.value)
-  };
-  new KeyboardController(boardControls, soundEngine);
+  new KeyboardController(soundEngine);
 
   const savedMessage = localStorage.getItem(STORAGE_KEY);
   if (savedMessage) {
@@ -106,15 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   runKalshiRotation(board).catch(error => {
     console.error(error);
-    board.displayMessage([
-      '',
-      '',
-      '',
-      'KALSHI API',
-      'UNAVAILABLE',
-      '',
-      'TRY AGAIN LATER'
-    ]);
+    board.displayMessage(UNAVAILABLE_MESSAGE);
   });
 
   settingsForm.addEventListener('submit', (e) => {

@@ -1,86 +1,109 @@
-# FlipOff.
+# KalshiBoard
 
-**Turn any TV into a retro split-flap display.** The classic flip-board look, without the $3,500 hardware. And it's free.
+**A fullscreen split-flap board for high-volume Kalshi markets.**
 
-![FlipOff Screenshot](screenshot.png)
+KalshiBoard turns the original FlipOff split-flap display into a live market board. It fetches open Kalshi markets, ranks them by volume, and rotates through the top markets with YES/NO prices, a probability bar, and volume stats.
 
-## What is this?
-
-FlipOff is a free, open-source web app that emulates a classic mechanical split-flap (flip-board) airport terminal display — the kind you'd see at train stations and airports. It runs full-screen in any browser, turning a TV or large monitor into a beautiful retro display.
-
-No accounts. No subscriptions. No $199 fee. Just open `index.html` and go.
+![KalshiBoard screenshot](screenshot.png)
 
 ## Features
 
-- Realistic split-flap animation with colorful scramble transitions
-- Authentic mechanical clacking sound (recorded from a real split-flap display)
-- Auto-rotating inspirational quotes
-- Fullscreen TV mode (press `F`)
-- Keyboard controls for manual navigation
-- Works offline — zero external dependencies
-- Responsive from mobile to 4K displays
-- Pure vanilla HTML/CSS/JS — no frameworks, no build tools, no npm
+- Live top-volume Kalshi market rotation
+- YES/NO midpoint pricing and visual probability bar
+- Total volume and 24-hour volume display
+- Manual board text override from the settings panel
+- Fullscreen TV mode
+- Split-flap tile animation with embedded transition audio
+- Small local Node server that serves static files and proxies Kalshi API calls
+- Vanilla HTML/CSS/JS with no package install step
 
 ## Quick Start
 
-1. Clone the repo
-2. Open `index.html` in a browser (or serve with any static file server)
-3. Click anywhere to enable audio
-4. Press `F` for fullscreen TV mode
+Run the local server from this folder:
 
 ```bash
-# Or serve locally:
-python3 -m http.server 8080
-# Then open http://localhost:8080
+node server.mjs
 ```
 
-## Keyboard Shortcuts
+Then open:
 
-| Key | Action |
-|-----|--------|
-| `Enter` / `Space` | Next message |
-| `Arrow Left` | Previous message |
-| `Arrow Right` | Next message |
-| `F` | Toggle fullscreen |
-| `M` | Toggle mute |
+```text
+http://127.0.0.1:4173/
+```
+
+If that port is already in use:
+
+```bash
+PORT=4174 node server.mjs
+```
+
+The server is required for live Kalshi data because the browser calls `/api/kalshi/...`, and `server.mjs` proxies those requests to Kalshi's public API.
+
+## Controls
+
+| Control | Action |
+| --- | --- |
+| Gear button | Open settings |
+| Manual board text + Apply | Show custom text on the board |
+| Sample | Load a sample board message |
+| Fullscreen button or `F` | Toggle fullscreen |
+| Sound button or `M` | Toggle transition audio |
 | `Escape` | Exit fullscreen |
+
+## macOS Screen Saver
+
+This repo also includes a native macOS screen saver wrapper that embeds the web app in `WKWebView` and serves the bundled app through a custom `kalshiboard://` URL scheme.
+
+Build the screen saver and DMG:
+
+```bash
+scripts/build-screensaver.sh
+```
+
+Generated files are written to `build/` and `dist/`, which are intentionally ignored by Git.
 
 ## How It Works
 
-Each tile on the board is an independent element that can animate through a scramble sequence (rapid random characters with colored backgrounds) before settling on the final character. Only tiles whose content changes between messages animate — just like a real mechanical board.
+`server.mjs` serves the app and proxies supported Kalshi endpoints under `/api/kalshi`. `js/KalshiFeed.js` fetches open markets, sorts them by 24-hour volume first and total volume second, then builds a 30-by-10 tile frame for each market. The board engine renders those frames with split-flap animations and colored YES/NO bar tiles.
 
-The sound is a single recorded audio clip of a real split-flap transition, played once per message change to perfectly sync with the visual animation.
+The macOS screen saver uses `macos-screensaver/Sources/KalshiBoardSaverView.swift` to load the same web app from bundled resources and proxy the same Kalshi API paths from inside WebKit.
 
 ## File Structure
 
-```
-flipoff/
-  index.html           — Single-page app
+```text
+.
+  index.html              Single-page app shell
+  server.mjs              Static server and Kalshi API proxy
+  screenshot.png          Current app screenshot
+  scripts/
+    build-screensaver.sh  Build a .saver bundle and DMG
+  macos-screensaver/
+    Info.plist            Screen saver bundle metadata
+    Sources/              Swift ScreenSaverView and WebKit bridge
+    Packaging/            DMG install notes
   css/
-    reset.css          — CSS reset
-    layout.css         — Page layout (header, hero, board)
-    board.css          — Board container and accent bars
-    tile.css           — Tile styling and 3D flip animation
-    responsive.css     — Media queries for all screen sizes
+    reset.css             CSS reset
+    layout.css            App shell and settings panel
+    board.css             Fullscreen board grid
+    tile.css              Split-flap tile styling and YES/NO tones
+    responsive.css        Large-screen and fullscreen adjustments
   js/
-    main.js            — Entry point and UI wiring
-    Board.js           — Grid manager and transition orchestration
-    Tile.js            — Individual tile animation logic
-    SoundEngine.js     — Audio playback with Web Audio API
-    MessageRotator.js  — Quote rotation timer
-    KeyboardController.js — Keyboard shortcut handling
-    constants.js       — Configuration (grid size, colors, quotes)
-    flapAudio.js       — Embedded audio data (base64)
+    main.js               App bootstrap and settings wiring
+    KalshiFeed.js         Market fetch, ranking, and frame formatting
+    Board.js              Grid manager and transition orchestration
+    Tile.js               Individual tile animation logic
+    SoundEngine.js        Embedded transition audio playback
+    KeyboardController.js Fullscreen and sound keyboard shortcuts
+    constants.js          Grid, timing, and animation constants
+    flapAudio.js          Embedded audio data
 ```
 
-## Customization
+## Legacy Cleanup Notes
 
-Edit `js/constants.js` to change:
-- **Messages**: Add your own quotes or text
-- **Grid size**: Adjust `GRID_COLS` and `GRID_ROWS`
-- **Timing**: Tweak `SCRAMBLE_DURATION`, `STAGGER_DELAY`, etc.
-- **Colors**: Modify `SCRAMBLE_COLORS` and `ACCENT_COLORS`
+The original FlipOff quote rotator has been removed from the active app. The old `MessageRotator.js`, quote message constants, quote interval constant, and unused accent color list are no longer needed because KalshiBoard now drives the display from `KalshiFeed.js`.
+
+The reusable pieces from the original app are still valuable: the board renderer, tile animation, sound engine, keyboard fullscreen/mute handling, base CSS reset, and embedded flap audio.
 
 ## License
 
-MIT — do whatever you want with it.
+MIT

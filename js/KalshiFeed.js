@@ -1,8 +1,8 @@
-import { GRID_COLS, GRID_ROWS, TOTAL_TRANSITION } from './constants.js?v=14';
+import { GRID_COLS, GRID_ROWS, TOTAL_TRANSITION } from './constants.js?v=15';
 
 const API_BASE = '/api/kalshi';
-const MARKET_LIMIT = 1000;
-const MAX_MARKET_PAGES = 5;
+const MARKET_LIMIT = 500;
+const MAX_MARKET_PAGES = 1;
 const ROTATION_LIMIT = 12;
 const HOLD_MS = 3000;
 const REFRESH_AFTER_MS = 5 * 60 * 1000;

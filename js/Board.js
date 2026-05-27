@@ -1,7 +1,7 @@
-import { Tile } from './Tile.js?v=14';
+import { Tile } from './Tile.js?v=15';
 import {
   GRID_COLS, GRID_ROWS, STAGGER_DELAY, TOTAL_TRANSITION
-} from './constants.js?v=14';
+} from './constants.js?v=15';
 
 export class Board {
   constructor(containerEl, soundEngine) {
