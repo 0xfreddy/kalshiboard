@@ -76,6 +76,38 @@
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
+.tile[data-tone="yes"] .tile-front {
+  background:
+    linear-gradient(
+      180deg,
+      #18d96a 0%,
+      #0fb85d 48%,
+      #08763d 49%,
+      #08763d 51%,
+      #0fa452 52%,
+      #1be072 100%
+    );
+}
+
+.tile[data-tone="no"] .tile-front {
+  background:
+    linear-gradient(
+      180deg,
+      #ff4c3b 0%,
+      #d92e22 48%,
+      #81160f 49%,
+      #81160f 51%,
+      #be2419 52%,
+      #ff5a45 100%
+    );
+}
+
+.tile[data-tone="yes"] .tile-front span,
+.tile[data-tone="no"] .tile-front span {
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.36);
+}
+
 .tile-back {
   transform: rotateX(180deg);
 }

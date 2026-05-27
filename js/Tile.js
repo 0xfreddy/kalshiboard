@@ -30,15 +30,20 @@ export class Tile {
     this.el.appendChild(this.innerEl);
   }
 
-  setChar(char) {
+  setChar(char, tone = '') {
     this.currentChar = char;
     this.frontSpan.textContent = char === ' ' ? '' : char;
     this.backSpan.textContent = '';
     this.frontEl.style.background = '';
+    this.setTone(tone);
   }
 
-  scrambleTo(targetChar, delay) {
-    if (targetChar === this.currentChar) return;
+  setTone(tone = '') {
+    this.el.dataset.tone = tone;
+  }
+
+  scrambleTo(targetChar, delay, tone = '') {
+    if (targetChar === this.currentChar && tone === (this.el.dataset.tone || '')) return;
 
     // Cancel any in-progress animation
     if (this._scrambleTimer) {
@@ -91,6 +96,7 @@ export class Tile {
             this.innerEl.style.transform = '';
             setTimeout(() => {
               this.innerEl.style.transition = '';
+              this.setTone(tone);
               this.el.classList.remove('scrambling');
               this.currentChar = targetChar;
               this.isAnimating = false;

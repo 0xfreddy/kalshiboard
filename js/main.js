@@ -2,6 +2,7 @@ import { Board } from './Board.js?v=7';
 import { SoundEngine } from './SoundEngine.js?v=7';
 import { KeyboardController } from './KeyboardController.js?v=7';
 import { GRID_COLS, GRID_ROWS } from './constants.js?v=7';
+import { runKalshiRotation } from './KalshiFeed.js?v=7';
 
 const STORAGE_KEY = 'flipoff.message';
 const SAMPLE_MESSAGE = 'NOW BOARDING\nGATE 22\nFINAL CALL\nWELCOME HOME';
@@ -101,7 +102,18 @@ document.addEventListener('DOMContentLoaded', () => {
     board.displayMessage(normalizeBoardText(value));
   };
 
-  applyMessage(messageInput.value);
+  runKalshiRotation(board).catch(error => {
+    console.error(error);
+    board.displayMessage([
+      '',
+      '',
+      '',
+      'KALSHI API',
+      'UNAVAILABLE',
+      '',
+      'TRY AGAIN LATER'
+    ]);
+  });
 
   settingsForm.addEventListener('submit', (e) => {
     e.preventDefault();
