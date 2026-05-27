@@ -60,7 +60,9 @@ public final class KalshiBoardSaverView: ScreenSaverView {
       DispatchQueue.main.async {
         switch result {
         case .success(let url):
-          webView?.load(URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData))
+          var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+          components?.queryItems = [URLQueryItem(name: "screensaver", value: "1")]
+          webView?.load(URLRequest(url: components?.url ?? url, cachePolicy: .reloadIgnoringLocalCacheData))
         case .failure(let error):
           NSLog("KalshiBoard local server failed: \(error.localizedDescription)")
           webView?.loadHTMLString(

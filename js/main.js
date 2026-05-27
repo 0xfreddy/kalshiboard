@@ -1,7 +1,7 @@
-import { Board } from './Board.js?v=16';
-import { SoundEngine } from './SoundEngine.js?v=16';
-import { KeyboardController } from './KeyboardController.js?v=16';
-import { runKalshiRotation } from './KalshiFeed.js?v=16';
+import { Board } from './Board.js?v=17';
+import { SoundEngine } from './SoundEngine.js?v=17';
+import { KeyboardController } from './KeyboardController.js?v=17';
+import { runKalshiRotation } from './KalshiFeed.js?v=17';
 
 const UNAVAILABLE_MESSAGE = [
   '',

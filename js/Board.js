@@ -1,7 +1,7 @@
-import { Tile } from './Tile.js?v=16';
+import { Tile } from './Tile.js?v=17';
 import {
   GRID_COLS, GRID_ROWS, STAGGER_DELAY, TOTAL_TRANSITION
-} from './constants.js?v=16';
+} from './constants.js?v=17';
 
 export class Board {
   constructor(containerEl, soundEngine) {
@@ -13,6 +13,8 @@ export class Board {
     this.currentGrid = [];
     this.currentToneGrid = [];
     this._queuedLines = null;
+    this._hasRenderedFrame = false;
+    this._synchronousFirstFrame = new URLSearchParams(window.location.search).get('screensaver') === '1';
 
     // Build board DOM
     this.boardEl = document.createElement('div');
@@ -59,6 +61,7 @@ export class Board {
 
     const newGrid = cells.map(row => row.map(cell => cell.char));
     const newToneGrid = cells.map(row => row.map(cell => cell.tone || ''));
+    const renderSynchronously = this._synchronousFirstFrame && !this._hasRenderedFrame;
 
     // Determine which tiles need to change
     let hasChanges = false;
@@ -71,21 +74,31 @@ export class Board {
         const oldTone = this.currentToneGrid[r][c];
 
         if (newChar !== oldChar || newTone !== oldTone) {
-          const delay = (r * this.cols + c) * STAGGER_DELAY;
-          this.tiles[r][c].scrambleTo(newChar, delay, newTone);
+          if (renderSynchronously) {
+            this.tiles[r][c].applyImmediately(newChar, newTone);
+          } else {
+            const delay = (r * this.cols + c) * STAGGER_DELAY;
+            this.tiles[r][c].scrambleTo(newChar, delay, newTone);
+          }
           hasChanges = true;
         }
       }
     }
 
     // Play the single transition audio clip once
-    if (hasChanges && this.soundEngine) {
+    if (hasChanges && this.soundEngine && !renderSynchronously) {
       this.soundEngine.playTransition();
     }
 
     // Update grid state
     this.currentGrid = newGrid;
     this.currentToneGrid = newToneGrid;
+    this._hasRenderedFrame = true;
+
+    if (renderSynchronously) {
+      this.isTransitioning = false;
+      return;
+    }
 
     // Clear transitioning flag after animation completes
     setTimeout(() => {

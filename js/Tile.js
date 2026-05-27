@@ -1,4 +1,4 @@
-import { CHARSET, SCRAMBLE_COLORS, SCRAMBLE_DURATION, FLIP_DURATION } from './constants.js?v=16';
+import { CHARSET, SCRAMBLE_COLORS, SCRAMBLE_DURATION, FLIP_DURATION } from './constants.js?v=17';
 
 export class Tile {
   constructor(row, col) {
@@ -120,6 +120,16 @@ export class Tile {
         }
       }, scrambleInterval);
     }, delay);
+  }
+
+  applyImmediately(targetChar, tone = '') {
+    this._clearTimers();
+    this.currentChar = targetChar;
+    this._setSpanChar(this.frontSpan, targetChar);
+    this._setSpanChar(this.backSpan, ' ');
+    this.frontEl.style.background = '';
+    this.frontSpan.style.color = '';
+    this.setTone(tone);
   }
 
   _clearTimers() {
