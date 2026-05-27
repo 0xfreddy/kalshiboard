@@ -6,3 +6,6 @@ Then open System Settings > Screen Saver and select KalshiBoard.
 
 If macOS blocks the saver because it is unsigned or ad-hoc signed, allow it from
 System Settings > Privacy & Security, or build/sign it with your Developer ID.
+
+When replacing an older build, quit System Settings before copying the new saver.
+If the old saver still appears, log out and back in or restart System Settings.

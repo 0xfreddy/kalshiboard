@@ -35,6 +35,7 @@ for ARCH in arm64 x86_64; do
     -o "$OBJECT_DIR/$SAVER_NAME-$ARCH" \
     "$ROOT_DIR/macos-screensaver/Sources/KalshiBoardSaverView.swift" \
     -framework AppKit \
+    -framework Network \
     -framework ScreenSaver \
     -framework WebKit \
     -Xlinker -bundle
