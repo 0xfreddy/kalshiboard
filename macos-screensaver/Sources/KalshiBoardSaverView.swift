@@ -6,7 +6,9 @@ import WebKit
 @objc(KalshiBoardSaverView)
 public final class KalshiBoardSaverView: ScreenSaverView {
   private var localServer: KalshiBoardLocalServer?
+  private var localServerURL: URL?
   private var webView: WKWebView?
+  private var settingsController: KalshiBoardSettingsController?
 
   public override init?(frame: NSRect, isPreview: Bool) {
     super.init(frame: frame, isPreview: isPreview)
@@ -41,6 +43,20 @@ public final class KalshiBoardSaverView: ScreenSaverView {
     webView?.frame = bounds
   }
 
+  public override var hasConfigureSheet: Bool {
+    true
+  }
+
+  public override var configureSheet: NSWindow? {
+    if settingsController == nil {
+      settingsController = KalshiBoardSettingsController { [weak self] in
+        self?.loadWebApp()
+      }
+    }
+
+    return settingsController?.window
+  }
+
   private func setupWebView() {
     wantsLayer = true
     layer?.backgroundColor = NSColor.black.cgColor
@@ -68,9 +84,8 @@ public final class KalshiBoardSaverView: ScreenSaverView {
       DispatchQueue.main.async {
         switch result {
         case .success(let url):
-          var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-          components?.queryItems = [URLQueryItem(name: "screensaver", value: "1")]
-          webView?.load(URLRequest(url: components?.url ?? url, cachePolicy: .reloadIgnoringLocalCacheData))
+          self.localServerURL = url
+          self.loadWebApp()
         case .failure(let error):
           NSLog("KalshiBoard local server failed: \(error.localizedDescription)")
           webView?.loadHTMLString(
@@ -79,6 +94,161 @@ public final class KalshiBoardSaverView: ScreenSaverView {
           )
         }
       }
+    }
+  }
+
+  private func loadWebApp() {
+    guard let url = localServerURL else {
+      return
+    }
+
+    let config = KalshiBoardPreferences.currentConfig()
+    var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+    components?.queryItems = [
+      URLQueryItem(name: "screensaver", value: "1"),
+      URLQueryItem(name: "cols", value: "\(config.cols)"),
+      URLQueryItem(name: "rows", value: "\(config.rows)"),
+      URLQueryItem(name: "theme", value: config.theme)
+    ]
+
+    webView?.load(URLRequest(url: components?.url ?? url, cachePolicy: .reloadIgnoringLocalCacheData))
+  }
+}
+
+private struct KalshiBoardGridPreset {
+  let id: String
+  let title: String
+  let cols: Int
+  let rows: Int
+}
+
+private enum KalshiBoardPreferences {
+  static let moduleName = "com.freddy.kalshiboard.screensaver"
+  static let sizeKey = "gridSize"
+  static let themeKey = "theme"
+  static let defaultSize = "dense"
+  static let defaultTheme = "dark"
+  static let presets = [
+    KalshiBoardGridPreset(id: "dense", title: "Dense (30 x 10)", cols: 30, rows: 10),
+    KalshiBoardGridPreset(id: "balanced", title: "Balanced (24 x 8)", cols: 24, rows: 8),
+    KalshiBoardGridPreset(id: "large", title: "Large Text (18 x 6)", cols: 18, rows: 6)
+  ]
+
+  static func defaults() -> ScreenSaverDefaults {
+    let defaults = ScreenSaverDefaults(forModuleWithName: moduleName)!
+    defaults.register(defaults: [
+      sizeKey: defaultSize,
+      themeKey: defaultTheme
+    ])
+    return defaults
+  }
+
+  static func currentConfig() -> (cols: Int, rows: Int, theme: String) {
+    let defaults = defaults()
+    let sizeId = defaults.string(forKey: sizeKey) ?? defaultSize
+    let preset = presets.first { $0.id == sizeId } ?? presets[0]
+    let theme = defaults.string(forKey: themeKey) == "light" ? "light" : "dark"
+    return (preset.cols, preset.rows, theme)
+  }
+}
+
+private final class KalshiBoardSettingsController: NSObject {
+  let window: NSPanel
+  private let sizePopup = NSPopUpButton(frame: .zero, pullsDown: false)
+  private let themePopup = NSPopUpButton(frame: .zero, pullsDown: false)
+  private let onSave: () -> Void
+
+  init(onSave: @escaping () -> Void) {
+    self.onSave = onSave
+    window = NSPanel(
+      contentRect: NSRect(x: 0, y: 0, width: 360, height: 188),
+      styleMask: [.titled],
+      backing: .buffered,
+      defer: false
+    )
+    super.init()
+    buildUI()
+  }
+
+  private func buildUI() {
+    window.title = "KalshiBoard Options"
+    window.isReleasedWhenClosed = false
+
+    let contentView = NSView(frame: NSRect(x: 0, y: 0, width: 360, height: 188))
+    window.contentView = contentView
+
+    let sizeLabel = NSTextField(labelWithString: "Board Size")
+    sizeLabel.frame = NSRect(x: 24, y: 126, width: 100, height: 22)
+    contentView.addSubview(sizeLabel)
+
+    sizePopup.frame = NSRect(x: 132, y: 122, width: 196, height: 28)
+    for preset in KalshiBoardPreferences.presets {
+      sizePopup.addItem(withTitle: preset.title)
+      sizePopup.lastItem?.representedObject = preset.id
+    }
+    contentView.addSubview(sizePopup)
+
+    let themeLabel = NSTextField(labelWithString: "Background")
+    themeLabel.frame = NSRect(x: 24, y: 82, width: 100, height: 22)
+    contentView.addSubview(themeLabel)
+
+    themePopup.frame = NSRect(x: 132, y: 78, width: 196, height: 28)
+    themePopup.addItem(withTitle: "Dark")
+    themePopup.lastItem?.representedObject = "dark"
+    themePopup.addItem(withTitle: "Light")
+    themePopup.lastItem?.representedObject = "light"
+    contentView.addSubview(themePopup)
+
+    let cancelButton = NSButton(title: "Cancel", target: self, action: #selector(cancel))
+    cancelButton.frame = NSRect(x: 164, y: 24, width: 78, height: 32)
+    contentView.addSubview(cancelButton)
+
+    let saveButton = NSButton(title: "Save", target: self, action: #selector(save))
+    saveButton.keyEquivalent = "\r"
+    saveButton.frame = NSRect(x: 250, y: 24, width: 78, height: 32)
+    contentView.addSubview(saveButton)
+
+    loadCurrentValues()
+  }
+
+  private func loadCurrentValues() {
+    let defaults = KalshiBoardPreferences.defaults()
+    let sizeId = defaults.string(forKey: KalshiBoardPreferences.sizeKey) ?? KalshiBoardPreferences.defaultSize
+    let theme = defaults.string(forKey: KalshiBoardPreferences.themeKey) ?? KalshiBoardPreferences.defaultTheme
+
+    selectItem(in: sizePopup, representedObject: sizeId)
+    selectItem(in: themePopup, representedObject: theme)
+  }
+
+  private func selectItem(in popup: NSPopUpButton, representedObject: String) {
+    for item in popup.itemArray where item.representedObject as? String == representedObject {
+      popup.select(item)
+      return
+    }
+    popup.selectItem(at: 0)
+  }
+
+  @objc private func save() {
+    let defaults = KalshiBoardPreferences.defaults()
+    let size = sizePopup.selectedItem?.representedObject as? String ?? KalshiBoardPreferences.defaultSize
+    let theme = themePopup.selectedItem?.representedObject as? String ?? KalshiBoardPreferences.defaultTheme
+    defaults.set(size, forKey: KalshiBoardPreferences.sizeKey)
+    defaults.set(theme, forKey: KalshiBoardPreferences.themeKey)
+    defaults.synchronize()
+    onSave()
+    close()
+  }
+
+  @objc private func cancel() {
+    loadCurrentValues()
+    close()
+  }
+
+  private func close() {
+    if let parent = window.sheetParent {
+      parent.endSheet(window)
+    } else {
+      window.close()
     }
   }
 }

@@ -1,4 +1,4 @@
-import { GRID_COLS, GRID_ROWS, TOTAL_TRANSITION } from './constants.js?v=18';
+import { GRID_COLS, GRID_ROWS } from './constants.js?v=19';
 
 const API_BASE = '/api/kalshi';
 const MARKET_LIMIT = 500;
@@ -41,14 +41,14 @@ function marketTitle(market) {
   const subtitle = sanitizeText(market.yes_sub_title || market.subtitle);
   const title = sanitizeText(market.title);
 
-  if (subtitle && subtitle.length <= GRID_COLS && subtitle !== 'YES') {
+  if (subtitle && subtitle !== 'YES') {
     return subtitle;
   }
 
   return title;
 }
 
-function wrapTitle(text, maxLines = 2) {
+function wrapTitle(text, cols, maxLines = 2) {
   const words = sanitizeText(text).split(/\s+/).filter(Boolean);
   const lines = [];
   let current = '';
@@ -56,7 +56,7 @@ function wrapTitle(text, maxLines = 2) {
   for (const word of words) {
     const next = current ? `${current} ${word}` : word;
 
-    if (next.length <= GRID_COLS) {
+    if (next.length <= cols) {
       current = next;
       continue;
     }
@@ -65,7 +65,7 @@ function wrapTitle(text, maxLines = 2) {
       lines.push(current);
     }
 
-    current = word.length <= GRID_COLS ? word : word.slice(0, GRID_COLS);
+    current = word.length <= cols ? word : word.slice(0, cols);
 
     if (lines.length >= maxLines) {
       return lines.slice(0, maxLines);
@@ -79,24 +79,28 @@ function wrapTitle(text, maxLines = 2) {
   return lines;
 }
 
-function blankGrid() {
-  return Array.from({ length: GRID_ROWS }, () =>
-    Array.from({ length: GRID_COLS }, () => ({ char: ' ', tone: '' }))
+function blankGrid(cols, rows) {
+  return Array.from({ length: rows }, () =>
+    Array.from({ length: cols }, () => ({ char: ' ', tone: '' }))
   );
 }
 
-function writeCentered(grid, row, text, tone = '') {
-  const clean = sanitizeText(text).slice(0, GRID_COLS);
-  const start = Math.max(0, Math.floor((GRID_COLS - clean.length) / 2));
+function writeCentered(grid, row, text, cols, tone = '') {
+  if (!grid[row]) return;
+
+  const clean = sanitizeText(text).slice(0, cols);
+  const start = Math.max(0, Math.floor((cols - clean.length) / 2));
 
   for (let index = 0; index < clean.length; index++) {
     grid[row][start + index] = { char: clean[index], tone };
   }
 }
 
-function writeMarketBar(grid, row, yesProbability) {
-  const segments = 20;
-  const startCol = Math.max(0, Math.floor((GRID_COLS - segments) / 2));
+function writeMarketBar(grid, row, yesProbability, cols) {
+  if (!grid[row]) return;
+
+  const segments = Math.min(20, Math.max(8, cols - 4));
+  const startCol = Math.max(0, Math.floor((cols - segments) / 2));
   const yesSegments = Math.max(0, Math.min(segments, Math.round(yesProbability * segments)));
 
   for (let index = 0; index < segments; index++) {
@@ -128,20 +132,26 @@ function formatVolume(value) {
   return String(Math.round(volume));
 }
 
-export function buildMarketFrame(market) {
-  const grid = blankGrid();
+export function buildMarketFrame(market, options = {}) {
+  const cols = options.cols || GRID_COLS;
+  const rows = options.rows || GRID_ROWS;
+  const grid = blankGrid(cols, rows);
   const yesCents = midpointCents(market.yes_bid_dollars, market.yes_ask_dollars, market.last_price_dollars);
   const noCents = Math.max(0, Math.min(100, 100 - yesCents));
   const yesProbability = yesCents / 100;
   const volume = formatVolume(market.volume_fp);
   const volume24h = formatVolume(market.volume_24h_fp);
 
-  wrapTitle(marketTitle(market)).forEach((line, index) => {
-    writeCentered(grid, 1 + index, line);
+  const layout = rows <= 6
+    ? { titleStart: 0, priceRow: 3, barRow: 4, volumeRow: 5 }
+    : { titleStart: 1, priceRow: Math.floor(rows * 0.45), barRow: Math.floor(rows * 0.55), volumeRow: rows - 2 };
+
+  wrapTitle(marketTitle(market), cols).forEach((line, index) => {
+    writeCentered(grid, layout.titleStart + index, line, cols);
   });
-  writeCentered(grid, 4, `YES ${yesCents}C   NO ${noCents}C`);
-  writeMarketBar(grid, 5, yesProbability);
-  writeCentered(grid, 8, `VOL ${volume} / 24H ${volume24h}`);
+  writeCentered(grid, layout.priceRow, `YES ${yesCents}C   NO ${noCents}C`, cols);
+  writeMarketBar(grid, layout.barRow, yesProbability, cols);
+  writeCentered(grid, layout.volumeRow, `VOL ${volume} 24H ${volume24h}`, cols);
 
   return { cells: grid };
 }
@@ -194,9 +204,9 @@ export async function runKalshiRotation(board) {
     }
 
     for (const market of markets) {
-      const frame = buildMarketFrame(market);
+      const frame = buildMarketFrame(market, { cols: board.cols, rows: board.rows });
       board.displayCells(frame.cells);
-      await wait(TOTAL_TRANSITION + HOLD_MS + 200);
+      await wait(board.transitionDuration() + HOLD_MS + 200);
     }
   }
 }

@@ -1,8 +1,20 @@
 html,
 body {
   min-height: 100%;
-  background: #ffffff;
-  color: #111111;
+  background: var(--page-bg, #050505);
+  color: var(--page-fg, #f4f4f4);
+}
+
+html[data-theme="dark"] {
+  --page-bg: #050505;
+  --page-fg: #f4f4f4;
+  --board-bg: #050505;
+}
+
+html[data-theme="light"] {
+  --page-bg: #f4f1ea;
+  --page-fg: #111111;
+  --board-bg: #f4f1ea;
 }
 
 body {
@@ -14,7 +26,7 @@ body {
   width: 100vw;
   height: 100vh;
   height: 100dvh;
-  background: #ffffff;
+  background: var(--page-bg, #050505);
   overflow: hidden;
 }
 

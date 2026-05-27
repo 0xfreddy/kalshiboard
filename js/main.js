@@ -1,9 +1,10 @@
-import { Board } from './Board.js?v=18';
-import { SoundEngine } from './SoundEngine.js?v=18';
-import { KeyboardController } from './KeyboardController.js?v=18';
-import { runKalshiRotation } from './KalshiFeed.js?v=18';
+import { Board } from './Board.js?v=19';
+import { SoundEngine } from './SoundEngine.js?v=19';
+import { KeyboardController } from './KeyboardController.js?v=19';
+import { runKalshiRotation } from './KalshiFeed.js?v=19';
 
-const IS_SCREENSAVER = new URLSearchParams(window.location.search).get('screensaver') === '1';
+const params = new URLSearchParams(window.location.search);
+const IS_SCREENSAVER = params.get('screensaver') === '1';
 const UNAVAILABLE_MESSAGE = [
   '',
   '',
@@ -78,7 +79,12 @@ if (IS_SCREENSAVER && !window.__kalshiBoardScheduler) {
 document.addEventListener('DOMContentLoaded', () => {
   const boardContainer = document.getElementById('board-container');
   const soundEngine = new SoundEngine();
-  const board = new Board(boardContainer, soundEngine);
+  const theme = params.get('theme') === 'light' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = theme;
+  const board = new Board(boardContainer, soundEngine, {
+    cols: params.get('cols'),
+    rows: params.get('rows')
+  });
   new KeyboardController(soundEngine);
 
   // Initialize audio on first user interaction (browser autoplay policy)

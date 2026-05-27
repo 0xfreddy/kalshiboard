@@ -12,6 +12,9 @@ The stable implementation has three important properties:
   market formatting logic.
 - The `.saver` bundle serves the bundled web app from a native localhost server,
   then loads `index.html?screensaver=1` in `WKWebView`.
+- The `.saver` options sheet stores board size and dark/light background
+  preferences in `ScreenSaverDefaults`, then passes them into the web app as
+  startup query params.
 - In screen saver mode, animation timing is driven by
   `ScreenSaverView.animateOneFrame()` instead of relying only on JavaScript
   timers.
@@ -44,18 +47,22 @@ from inside the saver. That gives WebKit a normal HTTP origin and lets the
 native wrapper proxy `/api/kalshi/...` just like `server.mjs` does for the web
 release.
 
-### 2. Settings UI Interfered With the Saver Runtime
+### 2. In-Board Settings UI Interfered With the Saver Runtime
 
 The web app previously had a settings panel and manual text controls. Those are
 useful for a browser toy, but they are wrong for a production screen saver.
 
-The stable release removed the settings panel from both the web and screen
-saver releases. Benefits:
+The stable release removed the in-board settings panel from both the web and
+screen saver releases. Benefits:
 
 - Fewer DOM controls in the screen saver host.
 - Less bootstrap state.
 - No chance that settings UI overlays block the board.
 - The board has one job: show live Kalshi market data full-screen.
+
+Configuration that belongs in the screen saver should be native macOS
+configuration, exposed through the screen saver options sheet, not through
+buttons or overlays rendered on the board itself.
 
 ### 3. Waiting for Async Animation Hid Failures
 
@@ -149,6 +156,7 @@ The screen saver release uses:
 - native localhost server via `Network.NWListener`
 - `WKWebView`
 - `index.html?screensaver=1`
+- screen saver options passed as `cols`, `rows`, and `theme` query params
 - native frame-driven JS scheduler
 
 Build:
@@ -238,7 +246,10 @@ open System Settings. This avoids chasing stale bundle behavior.
 Check:
 
 - Board fills the full screen.
-- No settings button or settings panel exists.
+- No in-board settings button or overlay panel exists.
+- Native screen saver options can switch Dense, Balanced, and Large Text board
+  sizes.
+- Native screen saver options can switch Dark and Light backgrounds.
 - Tiles render immediately.
 - `LOADING KALSHI` or live market data appears instead of a blank screen.
 - Tiles animate.
@@ -273,11 +284,27 @@ Prefer:
 - visible fallback/error states.
 - no required user input.
 
+### Keep Configuration Native
+
+Screen saver configuration should use the native macOS options sheet and
+`ScreenSaverDefaults`. The board itself should remain non-interactive.
+
+Current supported settings:
+
+- Dense: `30 x 10`
+- Balanced: `24 x 8`
+- Large Text: `18 x 6`
+- Dark background
+- Light background
+
+Pass these settings into the web app at load time. Do not make the board read
+preferences directly from WebKit storage; that creates another cache/state path.
+
 ### Avoid UI That Needs Interaction
 
 A screen saver should not require controls, settings panels, forms, buttons, or
-keyboard shortcuts to function. Configuration should be build-time, defaults, or
-future native preferences only if necessary.
+keyboard shortcuts to function. Configuration should be native saver options or
+startup config only.
 
 ### Make Cache Busting Intentional
 
@@ -349,6 +376,21 @@ Check:
 - bundled `js/main.js` contains `__kalshiBoardScheduler`.
 - asset versions in `index.html` and JS imports match the built files.
 
+### Options Do Not Apply
+
+Likely causes:
+
+- preferences were saved under the wrong `ScreenSaverDefaults` module name.
+- the saver URL was loaded without `cols`, `rows`, or `theme`.
+- System Settings or `ScreenSaverEngine` is still running an old bundle.
+- stale WebKit resources are installed.
+
+Check:
+
+- `KalshiBoardPreferences.moduleName` matches the saver bundle identifier.
+- `loadWebApp()` appends the preference query params.
+- cache-clean reinstall flow.
+
 ### Tiles Animate But No Market Data Appears
 
 Likely causes:
@@ -380,8 +422,8 @@ Use the clean install flow before debugging code.
 
 - Do not ship a screen saver feature that has only been tested in a browser.
 - Do not introduce screen saver behavior that depends only on JS timers.
-- Do not add interactive UI to the saver path unless it is explicitly native
-  screen saver configuration.
+- Do not add interactive UI to the board. Saver configuration belongs in the
+  native options sheet.
 - Do not hand off a DMG without verifying signing, DMG checksum, and bundled
   assets.
 - Do not debug a user report until stale installed copies have been ruled out.
@@ -402,4 +444,3 @@ future release risk:
 - Add Developer ID signing and notarization for public distribution.
 - Add a release script step that mounts the generated DMG and validates the
   expected `.saver` files are present.
-
