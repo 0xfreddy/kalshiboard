@@ -5,6 +5,7 @@ import WebKit
 @objc(KalshiBoardSaverView)
 public final class KalshiBoardSaverView: ScreenSaverView {
   private var webView: WKWebView?
+  private let kalshiBase = URL(string: "https://external-api.kalshi.com/trade-api/v2")!
 
   public override init?(frame: NSRect, isPreview: Bool) {
     super.init(frame: frame, isPreview: isPreview)
@@ -36,8 +37,13 @@ public final class KalshiBoardSaverView: ScreenSaverView {
     layer?.backgroundColor = NSColor.black.cgColor
 
     let configuration = WKWebViewConfiguration()
-    configuration.setURLSchemeHandler(KalshiBoardSchemeHandler(), forURLScheme: "kalshiboard")
     configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
+    configuration.userContentController.add(self, name: "kalshi")
+    configuration.userContentController.addUserScript(WKUserScript(
+      source: nativeFetchBridgeScript,
+      injectionTime: .atDocumentStart,
+      forMainFrameOnly: false
+    ))
 
     let webView = WKWebView(frame: bounds, configuration: configuration)
     webView.autoresizingMask = [.width, .height]
@@ -46,8 +52,139 @@ public final class KalshiBoardSaverView: ScreenSaverView {
     addSubview(webView)
     self.webView = webView
 
-    if let url = URL(string: "kalshiboard://app/index.html") {
-      webView.load(URLRequest(url: url))
+    guard let webRoot = Bundle(for: KalshiBoardSaverView.self)
+      .resourceURL?
+      .appendingPathComponent("WebApp", isDirectory: true) else {
+      NSLog("KalshiBoard screensaver resources are missing.")
+      return
+    }
+
+    webView.loadFileURL(
+      webRoot.appendingPathComponent("index.html", isDirectory: false),
+      allowingReadAccessTo: webRoot
+    )
+  }
+
+  private var nativeFetchBridgeScript: String {
+    """
+    (() => {
+      const originalFetch = window.fetch.bind(window);
+      const pending = new Map();
+
+      window.__kalshiBoardNativeResolve = (payload) => {
+        const request = pending.get(payload.id);
+        if (!request) return;
+        pending.delete(payload.id);
+
+        if (payload.error) {
+          request.reject(new Error(payload.error));
+          return;
+        }
+
+        request.resolve(new Response(payload.body || '', {
+          status: payload.status || 200,
+          headers: payload.headers || {}
+        }));
+      };
+
+      window.fetch = (input, init) => {
+        const url = typeof input === 'string' ? input : input && input.url;
+
+        if (url && url.startsWith('/api/kalshi/')) {
+          const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+          return new Promise((resolve, reject) => {
+            pending.set(id, { resolve, reject });
+            window.webkit.messageHandlers.kalshi.postMessage({ id, path: url });
+          });
+        }
+
+        return originalFetch(input, init);
+      };
+    })();
+    """
+  }
+
+  private func proxyKalshi(id: String, path: String) {
+    guard path.hasPrefix("/api/kalshi/") else {
+      resolveNativeFetch(id: id, status: 404, body: #"{"error":"Unsupported Kalshi endpoint"}"#)
+      return
+    }
+
+    let kalshiPath = path
+      .components(separatedBy: "?")
+      .first?
+      .replacingOccurrences(of: "/api/kalshi", with: "") ?? "/"
+
+    guard kalshiPath.range(of: #"^/(markets|events)(/|$)"#, options: .regularExpression) != nil else {
+      resolveNativeFetch(id: id, status: 404, body: #"{"error":"Unsupported Kalshi endpoint"}"#)
+      return
+    }
+
+    var components = URLComponents(
+      url: kalshiBase.appendingPathComponent(String(kalshiPath.dropFirst())),
+      resolvingAgainstBaseURL: false
+    )
+    components?.percentEncodedQuery = URLComponents(string: "https://kalshiboard.local\(path)")?
+      .percentEncodedQuery
+
+    guard let requestURL = components?.url else {
+      resolveNativeFetch(id: id, error: "Invalid Kalshi URL")
+      return
+    }
+
+    var request = URLRequest(url: requestURL)
+    request.setValue("application/json", forHTTPHeaderField: "accept")
+    request.cachePolicy = .reloadIgnoringLocalCacheData
+
+    URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+      if let error {
+        self?.resolveNativeFetch(id: id, error: error.localizedDescription)
+        return
+      }
+
+      let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 200
+      let body = String(data: data ?? Data(), encoding: .utf8) ?? ""
+      self?.resolveNativeFetch(
+        id: id,
+        status: statusCode,
+        body: body,
+        headers: ["content-type": "application/json; charset=utf-8"]
+      )
+    }.resume()
+  }
+
+  private func resolveNativeFetch(
+    id: String,
+    status: Int = 200,
+    body: String = "",
+    headers: [String: String] = [:],
+    error: String? = nil
+  ) {
+    guard let webView else {
+      return
+    }
+
+    var payload: [String: Any] = [
+      "id": id,
+      "status": status,
+      "body": body,
+      "headers": headers
+    ]
+
+    if let error {
+      payload["error"] = error
+    }
+
+    guard
+      let data = try? JSONSerialization.data(withJSONObject: payload),
+      let json = String(data: data, encoding: .utf8)
+    else {
+      return
+    }
+
+    DispatchQueue.main.async {
+      webView.evaluateJavaScript("window.__kalshiBoardNativeResolve(\(json));")
     }
   }
 }
@@ -70,156 +207,20 @@ extension KalshiBoardSaverView: WKNavigationDelegate {
   }
 }
 
-private final class KalshiBoardSchemeHandler: NSObject, WKURLSchemeHandler {
-  private let kalshiBase = URL(string: "https://external-api.kalshi.com/trade-api/v2")!
-  private lazy var webRoot: URL? = Bundle(for: KalshiBoardSaverView.self)
-    .resourceURL?
-    .appendingPathComponent("WebApp", isDirectory: true)
-
-  func webView(_ webView: WKWebView, start urlSchemeTask: WKURLSchemeTask) {
-    guard let url = urlSchemeTask.request.url else {
-      urlSchemeTask.didFailWithError(SaverError.invalidURL)
-      return
-    }
-
-    if url.path.hasPrefix("/api/kalshi/") {
-      proxyKalshi(url: url, task: urlSchemeTask)
-      return
-    }
-
-    serveStatic(url: url, task: urlSchemeTask)
-  }
-
-  func webView(_ webView: WKWebView, stop urlSchemeTask: WKURLSchemeTask) {
-  }
-
-  private func serveStatic(url: URL, task: WKURLSchemeTask) {
-    guard let webRoot else {
-      task.didFailWithError(SaverError.missingResources)
-      return
-    }
-
-    let requestedPath = url.path == "/" ? "/index.html" : url.path
-    let relativePath = requestedPath
-      .split(separator: "/")
-      .map(String.init)
-      .joined(separator: "/")
-
-    guard !relativePath.contains("..") else {
-      task.didFailWithError(SaverError.invalidURL)
-      return
-    }
-
-    let fileURL = webRoot.appendingPathComponent(relativePath, isDirectory: false)
-
-    do {
-      let data = try Data(contentsOf: fileURL)
-      let response = URLResponse(
-        url: url,
-        mimeType: mimeType(for: fileURL.pathExtension),
-        expectedContentLength: data.count,
-        textEncodingName: "utf-8"
-      )
-      task.didReceive(response)
-      task.didReceive(data)
-      task.didFinish()
-    } catch {
-      task.didFailWithError(error)
-    }
-  }
-
-  private func proxyKalshi(url: URL, task: WKURLSchemeTask) {
-    let kalshiPath = url.path.replacingOccurrences(of: "/api/kalshi", with: "")
-
-    guard kalshiPath.range(of: #"^/(markets|events)(/|$)"#, options: .regularExpression) != nil else {
-      sendJSON(["error": "Unsupported Kalshi endpoint"], status: 404, url: url, task: task)
-      return
-    }
-
-    var components = URLComponents(url: kalshiBase.appendingPathComponent(String(kalshiPath.dropFirst())), resolvingAgainstBaseURL: false)
-    components?.percentEncodedQuery = URLComponents(url: url, resolvingAgainstBaseURL: false)?.percentEncodedQuery
-
-    guard let requestURL = components?.url else {
-      task.didFailWithError(SaverError.invalidURL)
-      return
-    }
-
-    var request = URLRequest(url: requestURL)
-    request.setValue("application/json", forHTTPHeaderField: "accept")
-    request.cachePolicy = .reloadIgnoringLocalCacheData
-
-    URLSession.shared.dataTask(with: request) { data, response, error in
-      if let error {
-        task.didFailWithError(error)
-        return
-      }
-
-      let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 200
-      let contentType = (response as? HTTPURLResponse)?.value(forHTTPHeaderField: "content-type")
-        ?? "application/json; charset=utf-8"
-      let headers = [
-        "content-type": contentType,
-        "cache-control": "no-store"
-      ]
-
-      guard let httpResponse = HTTPURLResponse(
-        url: url,
-        statusCode: statusCode,
-        httpVersion: "HTTP/1.1",
-        headerFields: headers
-      ) else {
-        task.didFailWithError(SaverError.invalidResponse)
-        return
-      }
-
-      task.didReceive(httpResponse)
-      task.didReceive(data ?? Data())
-      task.didFinish()
-    }.resume()
-  }
-
-  private func sendJSON(
-    _ object: [String: String],
-    status: Int,
-    url: URL,
-    task: WKURLSchemeTask
+extension KalshiBoardSaverView: WKScriptMessageHandler {
+  public func userContentController(
+    _ userContentController: WKUserContentController,
+    didReceive message: WKScriptMessage
   ) {
-    let data = (try? JSONSerialization.data(withJSONObject: object)) ?? Data()
-    let response = HTTPURLResponse(
-      url: url,
-      statusCode: status,
-      httpVersion: "HTTP/1.1",
-      headerFields: ["content-type": "application/json; charset=utf-8"]
-    )!
-    task.didReceive(response)
-    task.didReceive(data)
-    task.didFinish()
-  }
-
-  private func mimeType(for ext: String) -> String {
-    switch ext.lowercased() {
-    case "css": return "text/css"
-    case "html": return "text/html"
-    case "js": return "text/javascript"
-    case "json": return "application/json"
-    case "png": return "image/png"
-    case "webp": return "image/webp"
-    case "svg": return "image/svg+xml"
-    default: return "application/octet-stream"
+    guard
+      message.name == "kalshi",
+      let body = message.body as? [String: Any],
+      let id = body["id"] as? String,
+      let path = body["path"] as? String
+    else {
+      return
     }
-  }
-}
 
-private enum SaverError: LocalizedError {
-  case invalidURL
-  case invalidResponse
-  case missingResources
-
-  var errorDescription: String? {
-    switch self {
-    case .invalidURL: return "Invalid KalshiBoard screensaver URL."
-    case .invalidResponse: return "Invalid KalshiBoard screensaver response."
-    case .missingResources: return "KalshiBoard screensaver resources are missing."
-    }
+    proxyKalshi(id: id, path: path)
   }
 }
