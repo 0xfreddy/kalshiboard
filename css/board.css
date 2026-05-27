@@ -4,7 +4,7 @@
   --tile-gap: clamp(3px, 0.36vw, 8px);
 
   position: relative;
-  background: #161616;
+  background: #ffffff;
   border: 0;
   border-radius: 0;
   padding: clamp(10px, 1.6vw, 26px);
@@ -24,26 +24,6 @@
   gap: var(--tile-gap);
   width: 100%;
   height: 100%;
-}
-
-.market-logo {
-  position: absolute;
-  top: clamp(16px, 2vw, 30px);
-  left: clamp(16px, 2vw, 30px);
-  z-index: 4;
-  width: clamp(38px, 5.2vw, 74px);
-  height: clamp(38px, 5.2vw, 74px);
-  object-fit: contain;
-  border-radius: 6px;
-  background: rgba(0, 0, 0, 0.36);
-  box-shadow:
-    0 10px 30px rgba(0, 0, 0, 0.42),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-  padding: 6px;
-}
-
-.market-logo[hidden] {
-  display: none;
 }
 
 .accent-bar,

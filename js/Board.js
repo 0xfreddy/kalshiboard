@@ -1,7 +1,7 @@
-import { Tile } from './Tile.js?v=7';
+import { Tile } from './Tile.js?v=14';
 import {
   GRID_COLS, GRID_ROWS, STAGGER_DELAY, TOTAL_TRANSITION
-} from './constants.js?v=7';
+} from './constants.js?v=14';
 
 export class Board {
   constructor(containerEl, soundEngine) {
@@ -13,7 +13,6 @@ export class Board {
     this.currentGrid = [];
     this.currentToneGrid = [];
     this._queuedLines = null;
-    this.logoEl = null;
 
     // Build board DOM
     this.boardEl = document.createElement('div');
@@ -44,22 +43,16 @@ export class Board {
 
     this.boardEl.appendChild(this.gridEl);
 
-    this.logoEl = document.createElement('img');
-    this.logoEl.className = 'market-logo';
-    this.logoEl.alt = '';
-    this.logoEl.hidden = true;
-    this.boardEl.appendChild(this.logoEl);
-
     containerEl.appendChild(this.boardEl);
   }
 
   displayMessage(lines) {
-    this.displayCells(this._formatToCells(lines), null);
+    this.displayCells(this._formatToCells(lines));
   }
 
-  displayCells(cells, logoUrl = null) {
+  displayCells(cells) {
     if (this.isTransitioning) {
-      this._queuedLines = { cells, logoUrl };
+      this._queuedLines = { cells };
       return;
     }
     this.isTransitioning = true;
@@ -93,29 +86,16 @@ export class Board {
     // Update grid state
     this.currentGrid = newGrid;
     this.currentToneGrid = newToneGrid;
-    this.setLogo(logoUrl);
 
     // Clear transitioning flag after animation completes
     setTimeout(() => {
       this.isTransitioning = false;
       if (this._queuedLines) {
-        const { cells: queuedCells, logoUrl: queuedLogoUrl } = this._queuedLines;
+        const { cells: queuedCells } = this._queuedLines;
         this._queuedLines = null;
-        this.displayCells(queuedCells, queuedLogoUrl);
+        this.displayCells(queuedCells);
       }
     }, TOTAL_TRANSITION + 200);
-  }
-
-  setLogo(logoUrl) {
-    if (!this.logoEl) return;
-    if (!logoUrl) {
-      this.logoEl.hidden = true;
-      this.logoEl.removeAttribute('src');
-      return;
-    }
-
-    this.logoEl.src = logoUrl;
-    this.logoEl.hidden = false;
   }
 
   _formatToCells(lines) {

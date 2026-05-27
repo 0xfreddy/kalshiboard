@@ -1,6 +1,6 @@
-import { GRID_COLS, GRID_ROWS, TOTAL_TRANSITION } from './constants.js?v=7';
+import { GRID_COLS, GRID_ROWS, TOTAL_TRANSITION } from './constants.js?v=14';
 
-const API_BASE = 'https://external-api.kalshi.com/trade-api/v2';
+const API_BASE = '/api/kalshi';
 const MARKET_LIMIT = 1000;
 const MAX_MARKET_PAGES = 5;
 const ROTATION_LIMIT = 12;
@@ -29,7 +29,7 @@ function sanitizeText(value) {
     .toUpperCase();
 }
 
-function compactTitle(market) {
+function marketTitle(market) {
   const subtitle = sanitizeText(market.yes_sub_title || market.subtitle);
   const title = sanitizeText(market.title);
 
@@ -37,7 +37,38 @@ function compactTitle(market) {
     return subtitle;
   }
 
-  return title.length <= GRID_COLS ? title : title.slice(0, GRID_COLS);
+  return title;
+}
+
+function wrapTitle(text, maxLines = 2) {
+  const words = sanitizeText(text).split(/\s+/).filter(Boolean);
+  const lines = [];
+  let current = '';
+
+  for (const word of words) {
+    const next = current ? `${current} ${word}` : word;
+
+    if (next.length <= GRID_COLS) {
+      current = next;
+      continue;
+    }
+
+    if (current) {
+      lines.push(current);
+    }
+
+    current = word.length <= GRID_COLS ? word : word.slice(0, GRID_COLS);
+
+    if (lines.length >= maxLines) {
+      return lines.slice(0, maxLines);
+    }
+  }
+
+  if (current && lines.length < maxLines) {
+    lines.push(current);
+  }
+
+  return lines;
 }
 
 function blankGrid() {
@@ -63,7 +94,7 @@ function writeMarketBar(grid, row, yesProbability) {
   for (let index = 0; index < segments; index++) {
     const isYes = index < yesSegments;
     grid[row][startCol + index] = {
-      char: isYes ? 'Y' : 'N',
+      char: ' ',
       tone: isYes ? 'yes' : 'no'
     };
   }
@@ -89,12 +120,7 @@ function formatVolume(value) {
   return String(Math.round(volume));
 }
 
-function marketLogoUrl(market, metadata) {
-  const marketDetail = metadata?.market_details?.find(detail => detail.market_ticker === market.ticker);
-  return marketDetail?.image_url || metadata?.image_url || metadata?.featured_image_url || null;
-}
-
-export function buildMarketFrame(market, metadata) {
+export function buildMarketFrame(market) {
   const grid = blankGrid();
   const yesCents = midpointCents(market.yes_bid_dollars, market.yes_ask_dollars, market.last_price_dollars);
   const noCents = Math.max(0, Math.min(100, 100 - yesCents));
@@ -102,15 +128,14 @@ export function buildMarketFrame(market, metadata) {
   const volume = formatVolume(market.volume_fp);
   const volume24h = formatVolume(market.volume_24h_fp);
 
-  writeCentered(grid, 3, compactTitle(market));
+  wrapTitle(marketTitle(market)).forEach((line, index) => {
+    writeCentered(grid, 1 + index, line);
+  });
   writeCentered(grid, 4, `YES ${yesCents}C   NO ${noCents}C`);
   writeMarketBar(grid, 5, yesProbability);
-  writeCentered(grid, 6, `VOL ${volume} / 24H ${volume24h}`);
+  writeCentered(grid, 8, `VOL ${volume} / 24H ${volume24h}`);
 
-  return {
-    cells: grid,
-    logoUrl: marketLogoUrl(market, metadata)
-  };
+  return { cells: grid };
 }
 
 export async function fetchTopMarkets() {
@@ -149,18 +174,7 @@ export async function fetchTopMarkets() {
     .slice(0, ROTATION_LIMIT);
 }
 
-export async function fetchEventMetadata(eventTicker) {
-  const response = await fetch(`${API_BASE}/events/${eventTicker}/metadata`);
-
-  if (!response.ok) {
-    return null;
-  }
-
-  return response.json();
-}
-
 export async function runKalshiRotation(board) {
-  const metadataCache = new Map();
   let markets = [];
   let lastRefresh = 0;
 
@@ -172,12 +186,8 @@ export async function runKalshiRotation(board) {
     }
 
     for (const market of markets) {
-      if (!metadataCache.has(market.event_ticker)) {
-        metadataCache.set(market.event_ticker, await fetchEventMetadata(market.event_ticker));
-      }
-
-      const frame = buildMarketFrame(market, metadataCache.get(market.event_ticker));
-      board.displayCells(frame.cells, frame.logoUrl);
+      const frame = buildMarketFrame(market);
+      board.displayCells(frame.cells);
       await wait(TOTAL_TRANSITION + HOLD_MS + 200);
     }
   }

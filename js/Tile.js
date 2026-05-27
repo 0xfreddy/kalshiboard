@@ -1,4 +1,4 @@
-import { CHARSET, SCRAMBLE_COLORS, SCRAMBLE_DURATION, FLIP_DURATION } from './constants.js?v=7';
+import { CHARSET, SCRAMBLE_COLORS, SCRAMBLE_DURATION, FLIP_DURATION } from './constants.js?v=14';
 
 export class Tile {
   constructor(row, col) {
@@ -30,10 +30,16 @@ export class Tile {
     this.el.appendChild(this.innerEl);
   }
 
+  _setSpanChar(span, char) {
+    const visibleChar = char === ' ' ? '' : char;
+    span.textContent = visibleChar;
+    span.dataset.char = visibleChar;
+  }
+
   setChar(char, tone = '') {
     this.currentChar = char;
-    this.frontSpan.textContent = char === ' ' ? '' : char;
-    this.backSpan.textContent = '';
+    this._setSpanChar(this.frontSpan, char);
+    this._setSpanChar(this.backSpan, ' ');
     this.frontEl.style.background = '';
     this.setTone(tone);
   }
@@ -61,7 +67,7 @@ export class Tile {
       this._scrambleTimer = setInterval(() => {
         // Random character
         const randChar = CHARSET[Math.floor(Math.random() * CHARSET.length)];
-        this.frontSpan.textContent = randChar === ' ' ? '' : randChar;
+        this._setSpanChar(this.frontSpan, randChar);
 
         // Cycle background color
         const color = SCRAMBLE_COLORS[scrambleCount % SCRAMBLE_COLORS.length];
@@ -86,7 +92,7 @@ export class Tile {
 
           // Set the final character directly (skip 3D flip for reliability)
           // Use a brief opacity flash to simulate the flip settle
-          this.frontSpan.textContent = targetChar === ' ' ? '' : targetChar;
+          this._setSpanChar(this.frontSpan, targetChar);
 
           // Quick flash effect: brief scale transform
           this.innerEl.style.transition = `transform ${FLIP_DURATION}ms ease-in-out`;

@@ -1,8 +1,8 @@
-import { Board } from './Board.js?v=7';
-import { SoundEngine } from './SoundEngine.js?v=7';
-import { KeyboardController } from './KeyboardController.js?v=7';
-import { GRID_COLS, GRID_ROWS } from './constants.js?v=7';
-import { runKalshiRotation } from './KalshiFeed.js?v=7';
+import { Board } from './Board.js?v=14';
+import { SoundEngine } from './SoundEngine.js?v=14';
+import { KeyboardController } from './KeyboardController.js?v=14';
+import { GRID_COLS, GRID_ROWS } from './constants.js?v=14';
+import { runKalshiRotation } from './KalshiFeed.js?v=14';
 
 const STORAGE_KEY = 'flipoff.message';
 const SAMPLE_MESSAGE = 'NOW BOARDING\nGATE 22\nFINAL CALL\nWELCOME HOME';
@@ -96,6 +96,8 @@ document.addEventListener('DOMContentLoaded', () => {
     panelToggle.classList.toggle('is-visible', !open);
     panelToggle.setAttribute('aria-expanded', String(open));
   };
+
+  setPanelOpen(false);
 
   const applyMessage = (value) => {
     localStorage.setItem(STORAGE_KEY, value);
