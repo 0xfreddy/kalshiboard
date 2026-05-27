@@ -80,6 +80,7 @@ extension KalshiBoardSaverView: WKNavigationDelegate {
     withError error: Error
   ) {
     NSLog("KalshiBoard screensaver navigation failed: \(error.localizedDescription)")
+    showFailure(error.localizedDescription, in: webView)
   }
 
   public func webView(
@@ -88,6 +89,24 @@ extension KalshiBoardSaverView: WKNavigationDelegate {
     withError error: Error
   ) {
     NSLog("KalshiBoard screensaver provisional navigation failed: \(error.localizedDescription)")
+    showFailure(error.localizedDescription, in: webView)
+  }
+
+  private func showFailure(_ message: String, in webView: WKWebView) {
+    let escaped = message
+      .replacingOccurrences(of: "&", with: "&amp;")
+      .replacingOccurrences(of: "<", with: "&lt;")
+      .replacingOccurrences(of: ">", with: "&gt;")
+    webView.loadHTMLString(
+      """
+      <html>
+        <body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#fff;color:#111;font:18px monospace">
+          <div>KALSHIBOARD LOAD FAILED<br>\(escaped)</div>
+        </body>
+      </html>
+      """,
+      baseURL: nil
+    )
   }
 }
 
