@@ -1,8 +1,20 @@
 html,
 body {
   min-height: 100%;
-  background: #ffffff;
-  color: #111111;
+  background: var(--page-bg, #050505);
+  color: var(--page-fg, #f4f4f4);
+}
+
+html[data-theme="dark"] {
+  --page-bg: #050505;
+  --page-fg: #f4f4f4;
+  --board-bg: #050505;
+}
+
+html[data-theme="light"] {
+  --page-bg: #f4f1ea;
+  --page-fg: #111111;
+  --board-bg: #f4f1ea;
 }
 
 body {
@@ -14,7 +26,7 @@ body {
   width: 100vw;
   height: 100vh;
   height: 100dvh;
-  background: #ffffff;
+  background: var(--page-bg, #050505);
   overflow: hidden;
 }
 
@@ -27,155 +39,102 @@ body {
   padding: 0;
 }
 
+.settings-toggle {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 20;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid color-mix(in srgb, var(--page-fg, #f4f4f4) 22%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--page-bg, #050505) 86%, transparent);
+  color: var(--page-fg, #f4f4f4);
+  font: 700 11px/1 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.22);
+}
+
 .settings-panel {
   position: fixed;
-  top: 24px;
-  right: 24px;
-  z-index: 30;
-  width: min(360px, calc(100vw - 32px));
+  top: 72px;
+  right: 18px;
+  z-index: 21;
+  width: min(360px, calc(100vw - 36px));
   padding: 18px;
-  background: rgba(12, 12, 12, 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid color-mix(in srgb, var(--page-fg, #f4f4f4) 18%, transparent);
   border-radius: 8px;
-  box-shadow: 0 22px 80px rgba(0, 0, 0, 0.44);
-  backdrop-filter: blur(18px);
-  transition: transform 0.24s ease, opacity 0.24s ease;
-}
-
-.settings-panel.is-closed {
-  transform: translateX(calc(100% + 40px));
+  background: color-mix(in srgb, var(--page-bg, #050505) 94%, #111 6%);
+  color: var(--page-fg, #f4f4f4);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.38);
+  transform: translateY(-8px);
   opacity: 0;
   pointer-events: none;
+  transition: opacity 160ms ease, transform 160ms ease;
 }
 
-.settings-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
-}
-
-.settings-header h1 {
-  margin: 0;
-  font-size: 20px;
-  line-height: 1;
-  letter-spacing: 0;
-}
-
-.settings-header p {
-  margin-top: 7px;
-  color: rgba(255, 255, 255, 0.56);
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-}
-
-.settings-form {
-  display: grid;
-  gap: 10px;
-}
-
-.settings-form label {
-  color: rgba(255, 255, 255, 0.76);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.settings-form textarea {
-  width: 100%;
-  min-height: 138px;
-  resize: vertical;
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 6px;
-  color: #fff;
-  font: 700 16px/1.35 "Courier New", monospace;
-  text-transform: uppercase;
-}
-
-.settings-form textarea:focus {
-  border-color: #00ffcc;
-  box-shadow: 0 0 0 3px rgba(0, 255, 204, 0.12);
-}
-
-.settings-actions,
-.control-row {
-  display: flex;
-  gap: 10px;
-}
-
-.settings-actions {
-  margin-top: 4px;
-}
-
-.control-row {
-  margin-top: 16px;
-}
-
-.primary-button,
-.secondary-button,
-.icon-button,
-.panel-toggle {
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 6px;
-  color: #fff;
-  font-weight: 800;
-  transition: transform 0.16s ease, background 0.16s ease, border-color 0.16s ease;
-}
-
-.primary-button,
-.secondary-button {
-  min-height: 42px;
-  padding: 0 16px;
-}
-
-.primary-button {
-  flex: 1;
-  background: #00aa84;
-  border-color: #00c89c;
-}
-
-.secondary-button,
-.icon-button,
-.panel-toggle {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.icon-button,
-.panel-toggle {
-  width: 42px;
-  height: 42px;
-  display: inline-grid;
-  place-items: center;
-  font-size: 20px;
-}
-
-.primary-button:hover,
-.secondary-button:hover,
-.icon-button:hover,
-.panel-toggle:hover {
-  transform: translateY(-1px);
-  border-color: rgba(255, 255, 255, 0.34);
-}
-
-.icon-button.is-muted {
-  color: #ff4d00;
-}
-
-.panel-toggle {
-  position: fixed;
-  top: 24px;
-  right: 24px;
-  z-index: 25;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.panel-toggle.is-visible {
+.settings-panel.is-open {
+  transform: translateY(0);
   opacity: 1;
   pointer-events: auto;
+}
+
+.settings-panel__header,
+.settings-panel__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-panel__header {
+  margin-bottom: 16px;
+}
+
+.settings-panel h2 {
+  margin: 0;
+  font: 700 15px/1.2 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+.settings-panel label {
+  display: grid;
+  gap: 7px;
+  margin: 0 0 13px;
+  font: 700 11px/1 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.settings-panel select {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid color-mix(in srgb, var(--page-fg, #f4f4f4) 18%, transparent);
+  border-radius: 6px;
+  background: var(--page-bg, #050505);
+  color: var(--page-fg, #f4f4f4);
+  font: 500 13px/1.2 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+.settings-panel__close,
+.settings-panel__apply {
+  min-height: 32px;
+  border: 1px solid color-mix(in srgb, var(--page-fg, #f4f4f4) 20%, transparent);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--page-fg, #f4f4f4);
+  font: 700 11px/1 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  cursor: pointer;
+}
+
+.settings-panel__close {
+  padding: 0 10px;
+}
+
+.settings-panel__apply {
+  width: 100%;
+  background: var(--page-fg, #f4f4f4);
+  color: var(--page-bg, #050505);
 }
 
 @media (max-width: 700px) {
@@ -184,20 +143,14 @@ body {
     align-items: center;
   }
 
+  .settings-toggle {
+    top: 10px;
+    right: 10px;
+  }
+
   .settings-panel {
-    top: auto;
-    right: 12px;
-    bottom: 12px;
-    left: 12px;
-    width: auto;
-  }
-
-  .settings-panel.is-closed {
-    transform: translateY(calc(100% + 28px));
-  }
-
-  .panel-toggle {
-    top: 12px;
-    right: 12px;
+    top: 58px;
+    right: 10px;
+    width: calc(100vw - 20px);
   }
 }

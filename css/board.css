@@ -1,10 +1,10 @@
 /* Board Container */
 .board {
-  --tile-size: clamp(18px, min(calc((100vw - 60px) / 30), calc((100vh - 52px) / 10)), 82px);
+  --tile-size: 42px;
   --tile-gap: clamp(3px, 0.36vw, 8px);
 
   position: relative;
-  background: #ffffff;
+  background: var(--board-bg, #050505);
   border: 0;
   border-radius: 0;
   padding: clamp(10px, 1.6vw, 26px);
@@ -33,7 +33,6 @@
 
 @media (max-width: 700px) {
   .board {
-    --tile-size: clamp(10px, min(calc((100vw - 28px) / 30), calc((100vh - 28px) / 10)), 28px);
     --tile-gap: 2px;
     width: 100vw;
     height: 100vh;

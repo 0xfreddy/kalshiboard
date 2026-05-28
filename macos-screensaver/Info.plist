@@ -12,14 +12,25 @@
   <string>6.0</string>
   <key>CFBundleName</key>
   <string>KalshiBoard</string>
+  <key>CFBundleIconFile</key>
+  <string>KalshiBoardIcon</string>
   <key>CFBundlePackageType</key>
   <string>BNDL</string>
   <key>CFBundleShortVersionString</key>
-  <string>0.1.0</string>
+  <string>0.3.0</string>
   <key>CFBundleVersion</key>
-  <string>1</string>
+  <string>3</string>
   <key>NSHumanReadableCopyright</key>
   <string>MIT</string>
+  <key>NSPrefPaneIconFile</key>
+  <string>KalshiBoardIcon.icns</string>
+  <key>NSScreenSaverPreviewImage</key>
+  <string>thumbnail.png</string>
+  <key>NSAppTransportSecurity</key>
+  <dict>
+    <key>NSAllowsLocalNetworking</key>
+    <true/>
+  </dict>
   <key>NSPrincipalClass</key>
   <string>KalshiBoardSaverView</string>
 </dict>

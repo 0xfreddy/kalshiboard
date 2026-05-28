@@ -1,4 +1,52 @@
-import { CHARSET, SCRAMBLE_COLORS, SCRAMBLE_DURATION, FLIP_DURATION } from './constants.js?v=15';
+import { CHARSET, SCRAMBLE_DURATION, FLIP_DURATION } from './constants.js?v=31';
+
+const pendingCharUpdates = new Map();
+let pendingCharFrame = null;
+
+function scheduler() {
+  return window.__kalshiBoardScheduler || null;
+}
+
+function scheduleTimeout(callback, delay) {
+  return scheduler()?.setTimeout(callback, delay) ?? setTimeout(callback, delay);
+}
+
+function cancelTimeout(id) {
+  const activeScheduler = scheduler();
+  if (activeScheduler) {
+    activeScheduler.clearTimeout(id);
+  } else {
+    clearTimeout(id);
+  }
+}
+
+function scheduleFrame(callback) {
+  if (scheduler()) {
+    return scheduleTimeout(callback, 16);
+  }
+
+  return requestAnimationFrame(callback);
+}
+
+function flushCharUpdates() {
+  const updates = [...pendingCharUpdates.entries()];
+  pendingCharUpdates.clear();
+  pendingCharFrame = null;
+
+  for (const [span, char] of updates) {
+    if (span.dataset.char === char) continue;
+    span.textContent = char;
+    span.dataset.char = char;
+  }
+}
+
+function queueSpanChar(span, char) {
+  pendingCharUpdates.set(span, char);
+
+  if (pendingCharFrame === null) {
+    pendingCharFrame = scheduleFrame(flushCharUpdates);
+  }
+}
 
 export class Tile {
   constructor(row, col) {
@@ -9,6 +57,7 @@ export class Tile {
     this._animationToken = 0;
     this._delayTimer = null;
     this._scrambleTimer = null;
+    this._settleTimer = null;
 
     // Build DOM
     this.el = document.createElement('div');
@@ -34,8 +83,7 @@ export class Tile {
 
   _setSpanChar(span, char) {
     const visibleChar = char === ' ' ? '' : char;
-    span.textContent = visibleChar;
-    span.dataset.char = visibleChar;
+    queueSpanChar(span, visibleChar);
   }
 
   setChar(char, tone = '') {
@@ -58,44 +106,28 @@ export class Tile {
     this.isAnimating = true;
     const animationToken = ++this._animationToken;
 
-    this._delayTimer = setTimeout(() => {
+    this._delayTimer = scheduleTimeout(() => {
       if (animationToken !== this._animationToken) return;
       this._delayTimer = null;
       this.el.classList.add('scrambling');
       let scrambleCount = 0;
-      const maxScrambles = 10 + Math.floor(Math.random() * 4);
-      const scrambleInterval = 70;
+      const maxScrambles = 6 + Math.floor(Math.random() * 3);
+      const scrambleInterval = Math.max(64, Math.floor(SCRAMBLE_DURATION / maxScrambles));
+      const scrambleFrames = Array.from({ length: maxScrambles }, () =>
+        CHARSET[Math.floor(Math.random() * CHARSET.length)]
+      );
 
-      this._scrambleTimer = setInterval(() => {
+      const runScrambleStep = () => {
         if (animationToken !== this._animationToken) {
           this._clearTimers();
           return;
         }
 
-        // Random character
-        const randChar = CHARSET[Math.floor(Math.random() * CHARSET.length)];
-        this._setSpanChar(this.frontSpan, randChar);
-
-        // Cycle background color
-        const color = SCRAMBLE_COLORS[scrambleCount % SCRAMBLE_COLORS.length];
-        this.frontEl.style.background = color;
-
-        // Briefly change text color for contrast on light backgrounds
-        if (color === '#FFFFFF' || color === '#FFCC00') {
-          this.frontSpan.style.color = '#111';
-        } else {
-          this.frontSpan.style.color = '';
-        }
-
+        this._setSpanChar(this.frontSpan, scrambleFrames[scrambleCount]);
         scrambleCount++;
 
         if (scrambleCount >= maxScrambles) {
-          clearInterval(this._scrambleTimer);
           this._scrambleTimer = null;
-
-          // Reset colors
-          this.frontEl.style.background = '';
-          this.frontSpan.style.color = '';
 
           // Set the final character directly (skip 3D flip for reliability)
           // Use a brief opacity flash to simulate the flip settle
@@ -105,11 +137,13 @@ export class Tile {
           this.innerEl.style.transition = `transform ${FLIP_DURATION}ms ease-in-out`;
           this.innerEl.style.transform = 'perspective(400px) rotateX(-8deg)';
 
-          setTimeout(() => {
+          this._settleTimer = scheduleTimeout(() => {
             if (animationToken !== this._animationToken) return;
+            this._settleTimer = null;
             this.innerEl.style.transform = '';
-            setTimeout(() => {
+            this._settleTimer = scheduleTimeout(() => {
               if (animationToken !== this._animationToken) return;
+              this._settleTimer = null;
               this.innerEl.style.transition = '';
               this.setTone(tone);
               this.el.classList.remove('scrambling');
@@ -117,22 +151,42 @@ export class Tile {
               this.isAnimating = false;
             }, FLIP_DURATION);
           }, FLIP_DURATION / 2);
+          return;
         }
-      }, scrambleInterval);
+
+        this._scrambleTimer = scheduleTimeout(runScrambleStep, scrambleInterval);
+      };
+
+      this._scrambleTimer = scheduleTimeout(runScrambleStep, 0);
     }, delay);
+  }
+
+  applyImmediately(targetChar, tone = '') {
+    this._clearTimers();
+    this.currentChar = targetChar;
+    this._setSpanChar(this.frontSpan, targetChar);
+    this._setSpanChar(this.backSpan, ' ');
+    this.frontEl.style.background = '';
+    this.frontSpan.style.color = '';
+    this.setTone(tone);
   }
 
   _clearTimers() {
     this._animationToken++;
 
     if (this._delayTimer) {
-      clearTimeout(this._delayTimer);
+      cancelTimeout(this._delayTimer);
       this._delayTimer = null;
     }
 
     if (this._scrambleTimer) {
-      clearInterval(this._scrambleTimer);
+      cancelTimeout(this._scrambleTimer);
       this._scrambleTimer = null;
+    }
+
+    if (this._settleTimer) {
+      cancelTimeout(this._settleTimer);
+      this._settleTimer = null;
     }
 
     this.el.classList.remove('scrambling');

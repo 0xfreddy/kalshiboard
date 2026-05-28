@@ -1,21 +1,23 @@
-# KalshiBoard
+# KalshiBoardScreensaver
 
-**A fullscreen split-flap board for high-volume Kalshi markets.**
+**A macOS split-flap screen saver for live Kalshi markets.**
 
-KalshiBoard turns the original FlipOff split-flap display into a live market board. It fetches open Kalshi markets, ranks them by volume, and rotates through the top markets with YES/NO prices, a probability bar, and volume stats.
+KalshiBoardScreensaver turns open Kalshi binary markets into a fullscreen market board. It fetches live market data from Kalshi, ranks markets by 24-hour volume and total volume, and rotates through the strongest matches with the exact API-provided market/event title, expiration date, YES/NO prices, probability bar, and main category.
 
-![KalshiBoard preview](macos-screensaver/Packaging/Assets/thumbnail.png)
+![KalshiBoardScreensaver preview](macos-screensaver/Packaging/Assets/thumbnail.png)
 
 ## Features
 
-- Live top-volume Kalshi market rotation
+- Live top-volume Kalshi binary market rotation
+- Exact Kalshi API titles and option labels
 - YES/NO midpoint pricing and visual probability bar
-- Total volume and 24-hour volume display
-- Manual board text override from the settings panel
+- Expiration date displayed as `DD/MM`
+- Main category display, with optional category and competition filtering
 - Fullscreen TV mode
 - Split-flap tile animation with embedded transition audio
 - Small local Node server that serves static files and proxies Kalshi API calls
 - Vanilla HTML/CSS/JS with no package install step
+- Branded macOS DMG with preview image, volume icon, and installer background
 
 ## Quick Start
 
@@ -44,15 +46,17 @@ The server is required for live Kalshi data because the browser calls `/api/kals
 | Control | Action |
 | --- | --- |
 | Gear button | Open settings |
-| Manual board text + Apply | Show custom text on the board |
-| Sample | Load a sample board message |
+| Board size | Choose Dense, Balanced, or Large Text |
+| Background | Choose Dark or Light |
+| Category | Filter to one main Kalshi category |
+| Subcategory | Filter by the selected category's competition/league |
 | Fullscreen button or `F` | Toggle fullscreen |
 | Sound button or `M` | Toggle transition audio |
 | `Escape` | Exit fullscreen |
 
 ## macOS Screen Saver
 
-This repo also includes a native macOS screen saver wrapper that embeds the web app in `WKWebView` and serves the bundled app through a custom `kalshiboard://` URL scheme.
+The native macOS screen saver embeds the same web app in `WKWebView`, serves the bundled app locally, and proxies Kalshi API paths from inside the screen saver.
 
 Build the screen saver and DMG:
 
@@ -60,11 +64,27 @@ Build the screen saver and DMG:
 scripts/build-screensaver.sh
 ```
 
-Generated files are written to `build/` and `dist/`, which are intentionally ignored by Git.
+The branded installer is written to:
+
+```text
+dist/KalshiBoardScreensaver.dmg
+```
+
+Generated build files are written to `build/` and `dist/`, which are intentionally ignored by Git.
+
+## Release Package
+
+The DMG contains:
+
+- `KalshiBoard.saver`
+- install notes
+- custom installer background from `thumbnail.png`
+- Kalshi volume icon from `kalshi.png`
+- bundled preview/brand assets from `macos-screensaver/Packaging/Assets/`
 
 ## How It Works
 
-`server.mjs` serves the app and proxies supported Kalshi endpoints under `/api/kalshi`. `js/KalshiFeed.js` fetches open markets, sorts them by 24-hour volume first and total volume second, then builds a 30-by-10 tile frame for each market. The board engine renders those frames with split-flap animations and colored YES/NO bar tiles.
+`server.mjs` serves the app and proxies supported Kalshi endpoints under `/api/kalshi`. `js/KalshiFeed.js` fetches open binary markets, enriches them with event and series metadata, sorts them by 24-hour volume first and total volume second, then builds a tile frame for each market. The board engine renders those frames with split-flap animations and colored YES/NO bar tiles.
 
 The macOS screen saver uses `macos-screensaver/Sources/KalshiBoardSaverView.swift` to load the same web app from bundled resources and proxy the same Kalshi API paths from inside WebKit.
 
@@ -79,7 +99,7 @@ The macOS screen saver uses `macos-screensaver/Sources/KalshiBoardSaverView.swif
   macos-screensaver/
     Info.plist            Screen saver bundle metadata
     Sources/              Swift ScreenSaverView and WebKit bridge
-    Packaging/            DMG install notes
+    Packaging/            DMG install notes and release assets
   css/
     reset.css             CSS reset
     layout.css            App shell and settings panel
